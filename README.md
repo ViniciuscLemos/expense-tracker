@@ -15,11 +15,12 @@ I made it to practice React with an app I could actually use day to day. There's
 - add expenses and income with a category and a date
 - edit and delete entries (deleting shows "Undo" for a few seconds instead of asking first)
 - move between months
-- see the month's total income, expenses and balance
+- see the month's total income, expenses and balance, and how much more or less you spent than the month before
 - see expenses by category in a donut and in bars, each category with its own color and icon
 - compare income and expenses of the last 6 months (clicking a month opens it)
 - the list is grouped by day, with the day's total, and can be filtered by type or searched
 - export the month to CSV (opens straight in Excel)
+- download a backup of everything and restore it in another browser or phone (restoring the same file twice doesn't duplicate anything)
 - install it on your phone as an app (Chrome shows "Add to home screen"), and it opens even without internet
 - dark mode, which follows the phone or computer theme
 
