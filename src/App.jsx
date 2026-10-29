@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { filterEntries, inMonth, monthName, monthOf, shiftMonth, summary, toCsv, today } from './lib/finance';
+import { expenseChange, filterEntries, inMonth, monthName, monthOf, shiftMonth, summary, toCsv, today } from './lib/finance';
 import { sample } from './lib/sample';
 import EntryForm from './components/EntryForm';
 import Summary from './components/Summary';
@@ -91,7 +91,11 @@ export default function App() {
         </div>
       </header>
 
-      <Summary {...summary(currentMonth)} />
+      <Summary
+        {...summary(currentMonth)}
+        change={expenseChange(entries, month)}
+        previousMonth={monthName(shiftMonth(month, -1)).split(' ')[0]}
+      />
 
       <div className="columns">
         <div>

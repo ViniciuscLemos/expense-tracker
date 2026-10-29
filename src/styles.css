@@ -166,6 +166,11 @@ button.link.danger {
   font-size: 1.4rem;
 }
 
+.summary small {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
 .columns {
   display: grid;
   grid-template-columns: 360px 1fr;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { sample } from './sample';
 import {
-  dayLabel, expensesByCategory, filterEntries, formatMoney, groupByDate, inMonth, monthlyTotals, monthName, parseAmount,
+  dayLabel, expenseChange, expensesByCategory, filterEntries, formatMoney, groupByDate, inMonth, monthlyTotals, monthName, parseAmount,
   shiftMonth, summary, toCsv,
 } from './finance';
 
@@ -14,6 +14,13 @@ const entries = [
 ];
 
 describe('finance', () => {
+  it('compares the expenses with the month before', () => {
+    // october 168,940 against september 2,200
+    expect(expenseChange(entries, '2026-10')).toBe(7579);
+    expect(expenseChange(entries, '2026-11')).toBe(-100);
+    expect(expenseChange(entries, '2026-09')).toBeNull();
+  });
+
   it('reads the typed amount in cents', () => {
     expect(parseAmount('12.50')).toBe(1250);
     expect(parseAmount('12,50')).toBe(1250);

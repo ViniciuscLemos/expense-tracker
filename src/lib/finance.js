@@ -42,6 +42,14 @@ export function summary(entries) {
   return { income, expenses, balance: income - expenses };
 }
 
+// how much the expenses went up or down (in %) from the month before, or null without a base to compare
+export function expenseChange(entries, month) {
+  const before = summary(inMonth(entries, shiftMonth(month, -1))).expenses;
+  if (!before) return null;
+  const now = summary(inMonth(entries, month)).expenses;
+  return Math.round((100 * (now - before)) / before);
+}
+
 // expenses added up by category, biggest first
 export function expensesByCategory(entries) {
   const total = {};
