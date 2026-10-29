@@ -88,3 +88,21 @@ test('keeps the entries after a reload', async ({ page }) => {
   await expect(page.locator('.entry-list')).toContainText('Books');
   await expect(summaryValue(page, 'Expenses')).toHaveText('$25.00');
 });
+
+test('a backup brings the entries back in a clean browser', async ({ page }) => {
+  await add(page, { description: 'Books', amount: '25' });
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download backup' }).click();
+  const file = await (await download).path();
+
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await expect(page.getByText('Nothing added in October 2026')).toBeVisible();
+
+  await page.locator('.backup input[type=file]').setInputFiles(file);
+  await expect(page.locator('.backup')).toContainText('1 entry restored.');
+  await expect(summaryValue(page, 'Expenses')).toHaveText('$25.00');
+
+  await page.locator('.backup input[type=file]').setInputFiles(file);
+  await expect(page.locator('.backup')).toContainText('already here');
+});

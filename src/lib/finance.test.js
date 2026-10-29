@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { sample } from './sample';
 import {
-  dayLabel, expenseChange, expensesByCategory, filterEntries, formatMoney, groupByDate, inMonth, monthlyTotals, monthName, parseAmount,
+  dayLabel, expenseChange, expensesByCategory, filterEntries, formatMoney, groupByDate, inMonth, mergeBackup, monthlyTotals,
+  monthName, parseAmount,
   shiftMonth, summary, toCsv,
 } from './finance';
 
@@ -14,6 +15,15 @@ const entries = [
 ];
 
 describe('finance', () => {
+  it('restores a backup without repeating entries', () => {
+    const saved = entries.map((e) => ({ ...e, id: String(e.id) }));
+    const backup = JSON.stringify({ version: 1, entries: saved });
+    expect(mergeBackup([], backup)).toHaveLength(5);
+    expect(mergeBackup(saved.slice(0, 3), backup).map((e) => e.id)).toEqual(['4', '5']);
+    expect(() => mergeBackup([], 'not json')).toThrow("isn't a backup");
+    expect(() => mergeBackup([], JSON.stringify([{ id: 'x', amount: -1 }]))).toThrow("isn't a backup");
+  });
+
   it('compares the expenses with the month before', () => {
     // october 168,940 against september 2,200
     expect(expenseChange(entries, '2026-10')).toBe(7579);

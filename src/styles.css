@@ -538,6 +538,17 @@ button.link.danger {
   padding: 30px 0;
 }
 
+.backup {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
 footer {
   text-align: center;
   color: var(--muted);

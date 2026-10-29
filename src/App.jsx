@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { expenseChange, filterEntries, inMonth, monthName, monthOf, shiftMonth, summary, toCsv, today } from './lib/finance';
+import { expenseChange, filterEntries, inMonth, mergeBackup, monthName, monthOf, shiftMonth, summary, toCsv, today } from './lib/finance';
 import { sample } from './lib/sample';
 import EntryForm from './components/EntryForm';
 import Summary from './components/Summary';
@@ -23,6 +23,8 @@ export default function App() {
   // the last deleted entry, so it can come back with "Undo"
   const [deleted, setDeleted] = useState(null);
   const undoTimer = useRef(null);
+  const [notice, setNotice] = useState('');
+  const restoreInput = useRef(null);
 
   useEffect(() => {
     try {
@@ -70,14 +72,35 @@ export default function App() {
 
   useEffect(() => () => clearTimeout(undoTimer.current), []);
 
-  function exportCsv() {
-    // the BOM at the start makes Excel read accents right
-    const blob = new Blob(['﻿' + toCsv(currentMonth)], { type: 'text/csv;charset=utf-8' });
+  function download(content, name, type) {
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `expenses-${month}.csv`;
+    link.href = URL.createObjectURL(new Blob([content], { type }));
+    link.download = name;
     link.click();
     URL.revokeObjectURL(link.href);
+  }
+
+  // everything lives in localStorage, so this is the only way to move to another browser or phone
+  function backup() {
+    download(JSON.stringify({ version: 1, entries }, null, 2), `expenses-backup-${today()}.json`, 'application/json');
+  }
+
+  async function restore(event) {
+    const file = event.target.files[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const added = mergeBackup(entries, await file.text());
+      setEntries((list) => [...list, ...added]);
+      setNotice(added.length ? `${added.length} ${added.length === 1 ? 'entry' : 'entries'} restored.` : 'Everything in this backup is already here.');
+    } catch (error) {
+      setNotice(error.message);
+    }
+  }
+
+  function exportCsv() {
+    // the BOM at the start makes Excel read accents right
+    download('﻿' + toCsv(currentMonth), `expenses-${month}.csv`, 'text/csv;charset=utf-8');
   }
 
   return (
@@ -165,6 +188,13 @@ export default function App() {
           <button className="link" onClick={undo}>Undo</button>
         </div>
       )}
+
+      <div className="backup">
+        {entries.length > 0 && <button className="link" onClick={backup}>Download backup</button>}
+        <button className="link" onClick={() => restoreInput.current.click()}>Restore backup</button>
+        <input ref={restoreInput} type="file" accept="application/json,.json" onChange={restore} hidden />
+        {notice && <span role="status">{notice}</span>}
+      </div>
 
       <footer>
         Your data is only saved in your browser · made by{' '}

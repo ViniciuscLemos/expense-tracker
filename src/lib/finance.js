@@ -90,6 +90,23 @@ export function toCsv(entries) {
   return ['Date,Description,Category,Type,Amount', ...rows].join('\n');
 }
 
+// backup file -> entries that aren't in the list yet (same id = same entry, so restoring twice adds nothing)
+export function mergeBackup(entries, text) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("This file isn't a backup.");
+  }
+  const list = Array.isArray(data) ? data : data?.entries;
+  const valid = (e) =>
+    e && typeof e.id === 'string' && typeof e.description === 'string' && Number.isInteger(e.amount) &&
+    e.amount > 0 && ['income', 'expense'].includes(e.type) && /^\d{4}-\d{2}-\d{2}$/.test(e.date);
+  if (!Array.isArray(list) || !list.every(valid)) throw new Error("This file isn't a backup.");
+  const known = new Set(entries.map((e) => e.id));
+  return list.filter((e) => !known.has(e.id));
+}
+
 // one color per category, used in the donut, in the bars and in the list
 export const CATEGORY_COLORS = {
   Food: '#f59e0b',
