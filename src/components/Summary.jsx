@@ -1,6 +1,6 @@
 import { formatMoney, savingsRate } from '../lib/finance';
 
-export default function Summary({ income, expenses, balance, change, previousMonth }) {
+export default function Summary({ income, expenses, balance, change, previousMonth, perDay }) {
   const saved = savingsRate({ income, balance });
   return (
     <div className="summary">
@@ -16,6 +16,7 @@ export default function Summary({ income, expenses, balance, change, previousMon
             {change === 0 ? 'Same as' : `${Math.abs(change)}% ${change > 0 ? 'more' : 'less'} than`} {previousMonth}
           </small>
         )}
+        {perDay > 0 && <small>About {formatMoney(perDay)} a day</small>}
       </div>
       <div className="card">
         <span>Month balance</span>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { expenseChange, filterEntries, inMonth, mergeBackup, monthName, monthOf, shiftMonth, summary, toCsv, today } from './lib/finance';
+import { dailyAverage, expenseChange, filterEntries, inMonth, mergeBackup, monthName, monthOf, shiftMonth, summary, toCsv, today } from './lib/finance';
 import { sample } from './lib/sample';
 import EntryForm from './components/EntryForm';
 import Summary from './components/Summary';
@@ -118,6 +118,7 @@ export default function App() {
         {...summary(currentMonth)}
         change={expenseChange(entries, month)}
         previousMonth={monthName(shiftMonth(month, -1)).split(' ')[0]}
+        perDay={dailyAverage(summary(currentMonth).expenses, month, today())}
       />
 
       <div className="columns">

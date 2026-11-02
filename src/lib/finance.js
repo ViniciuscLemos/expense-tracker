@@ -56,6 +56,16 @@ export function savingsRate({ income, balance }) {
   return Math.round((100 * balance) / income);
 }
 
+// spent per day: over the whole month when it's over, over the days so far in the current one,
+// and null for a month that hasn't started
+export function dailyAverage(expenses, month, todayIso) {
+  const current = monthOf(todayIso);
+  if (month > current) return null;
+  const [year, m] = month.split('-').map(Number);
+  const days = month === current ? Number(todayIso.slice(8, 10)) : new Date(year, m, 0).getDate();
+  return Math.round(expenses / days);
+}
+
 // expenses added up by category, biggest first
 export function expensesByCategory(entries) {
   const total = {};

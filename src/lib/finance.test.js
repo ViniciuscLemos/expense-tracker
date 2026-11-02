@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { sample } from './sample';
 import {
-  dayLabel, expenseChange, expensesByCategory, filterEntries, formatMoney, groupByDate, inMonth, mergeBackup, monthlyTotals,
+  dailyAverage, dayLabel, expenseChange, expensesByCategory, filterEntries, formatMoney, groupByDate, inMonth, mergeBackup, monthlyTotals,
   monthName, parseAmount, savingsRate,
   shiftMonth, summary, toCsv,
 } from './finance';
@@ -28,6 +28,13 @@ describe('finance', () => {
     expect(savingsRate({ income: 300000, balance: 131060 })).toBe(44);
     expect(savingsRate({ income: 100000, balance: -25000 })).toBe(-25);
     expect(savingsRate({ income: 0, balance: -5000 })).toBeNull();
+  });
+
+  it('spent per day, counting only the days so far in the current month', () => {
+    expect(dailyAverage(31000, '2026-10', '2026-11-02')).toBe(1000);
+    expect(dailyAverage(30000, '2026-11', '2026-11-15')).toBe(2000);
+    expect(dailyAverage(2900, '2028-02', '2028-03-01')).toBe(100); // leap year
+    expect(dailyAverage(1000, '2026-12', '2026-11-15')).toBeNull();
   });
 
   it('compares the expenses with the month before', () => {
