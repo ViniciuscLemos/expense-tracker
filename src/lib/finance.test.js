@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { sample } from './sample';
 import {
   dayLabel, expenseChange, expensesByCategory, filterEntries, formatMoney, groupByDate, inMonth, mergeBackup, monthlyTotals,
-  monthName, parseAmount,
+  monthName, parseAmount, savingsRate,
   shiftMonth, summary, toCsv,
 } from './finance';
 
@@ -22,6 +22,12 @@ describe('finance', () => {
     expect(mergeBackup(saved.slice(0, 3), backup).map((e) => e.id)).toEqual(['4', '5']);
     expect(() => mergeBackup([], 'not json')).toThrow("isn't a backup");
     expect(() => mergeBackup([], JSON.stringify([{ id: 'x', amount: -1 }]))).toThrow("isn't a backup");
+  });
+
+  it('how much of the income was saved', () => {
+    expect(savingsRate({ income: 300000, balance: 131060 })).toBe(44);
+    expect(savingsRate({ income: 100000, balance: -25000 })).toBe(-25);
+    expect(savingsRate({ income: 0, balance: -5000 })).toBeNull();
   });
 
   it('compares the expenses with the month before', () => {

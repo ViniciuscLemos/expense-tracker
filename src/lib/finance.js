@@ -50,6 +50,12 @@ export function expenseChange(entries, month) {
   return Math.round((100 * (now - before)) / before);
 }
 
+// share of the income that was left over, in %. Negative when more went out than came in
+export function savingsRate({ income, balance }) {
+  if (!income) return null;
+  return Math.round((100 * balance) / income);
+}
+
 // expenses added up by category, biggest first
 export function expensesByCategory(entries) {
   const total = {};

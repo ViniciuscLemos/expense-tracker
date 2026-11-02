@@ -26,6 +26,7 @@ test('adds an expense and shows it in the summary and the list', async ({ page }
   await add(page, { type: 'Income', description: 'Freelance job', amount: '100' });
   await expect(summaryValue(page, 'Income')).toHaveText('$100.00');
   await expect(summaryValue(page, 'Month balance')).toHaveText('$57.50');
+  await expect(page.locator('.summary .card', { hasText: 'Month balance' })).toContainText('Kept 58% of what came in');
 });
 
 test('says what is wrong with the form instead of adding', async ({ page }) => {
