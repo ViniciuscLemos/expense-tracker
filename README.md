@@ -16,6 +16,7 @@ I made it to practice React with an app I could actually use day to day. There's
 - edit and delete entries (deleting shows "Undo" for a few seconds instead of asking first)
 - move between months
 - see the month's total income, expenses and balance, and how much more or less you spent than the month before
+- see how much of what came in was kept, and how much went out per day (in the current month it only counts the days so far, so it doesn't look cheaper on the 2nd)
 - see expenses by category in a donut and in bars, each category with its own color and icon
 - compare income and expenses of the last 6 months (clicking a month opens it)
 - the list is grouped by day, with the day's total, and can be filtered by type or searched
