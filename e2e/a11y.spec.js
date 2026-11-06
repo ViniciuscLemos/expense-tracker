@@ -1,8 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-// automatic accessibility check (contrast, labels, names...) in light and dark mode,
-// with and without data, since the list, chart and filters only show up with entries
+// automatic accessibility check (contrast, labels, names...) in light and dark mode, on the
+// login page and on a full month of the demo account
 
 async function audit(page) {
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
@@ -13,16 +13,22 @@ for (const scheme of ['light', 'dark']) {
   test.describe(`${scheme} mode`, () => {
     test.use({ colorScheme: scheme });
 
-    test('no accessibility problems when empty', async ({ page }) => {
+    test('the login page', async ({ page }) => {
       await page.goto('./');
+      await expect(page.getByRole('heading', { name: 'Log in' })).toBeVisible();
       expect(await audit(page)).toEqual([]);
     });
 
-    test('no accessibility problems with the sample data', async ({ page }) => {
-      await page.clock.setFixedTime(new Date('2026-10-15T12:00:00'));
+    test('a month with entries, and the categories', async ({ page }) => {
       await page.goto('./');
-      await page.getByRole('button', { name: 'Load sample data' }).click();
-      await expect(page.locator('.entry-list')).toBeVisible();
+      await page.getByRole('button', { name: "Open Marina's notebook" }).click();
+      await page.getByRole('button', { name: 'Previous month' }).click();
+      await expect(page.locator('.ledger-days')).toBeVisible();
+      await expect(page.locator('.calendar')).toBeVisible();
+      expect(await audit(page)).toEqual([]);
+
+      await page.getByRole('button', { name: 'categories' }).click();
+      await expect(page.getByRole('heading', { name: 'Categories' })).toBeVisible();
       expect(await audit(page)).toEqual([]);
     });
   });

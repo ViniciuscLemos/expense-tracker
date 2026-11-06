@@ -1,0 +1,17 @@
+# Render config (Blueprint): the page and the API in one Docker service on the free plan.
+# The database is a free Neon Postgres (Render's free one is deleted after 30 days), so
+# DATABASE_URL is pasted by hand.
+services:
+  - type: web
+    name: expense-tracker
+    runtime: docker
+    plan: free
+    region: virginia
+    healthCheckPath: /api/health
+    envVars:
+      # the public demo: Marina's six months, made again on every start
+      - key: DEMO
+        value: "true"
+      # postgresql://user:password@HOST/expenses?sslmode=require
+      - key: DATABASE_URL
+        sync: false

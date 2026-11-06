@@ -1,109 +1,100 @@
 import { expect, test } from '@playwright/test';
 
-// a fixed "today", so the month names and the sample data don't depend on when it runs
-test.beforeEach(async ({ page }) => {
-  await page.clock.setFixedTime(new Date('2026-10-15T12:00:00'));
+// every test makes its own account, so they don't see each other's entries
+async function signUp(page) {
   await page.goto('./');
-});
-
-async function add(page, { type = 'Expense', description, amount, date }) {
-  const form = page.locator('.entry-form');
-  await form.getByRole('button', { name: type, exact: true }).click();
-  await form.getByLabel('Description').fill(description);
-  await form.getByLabel('Amount ($)').fill(amount);
-  if (date) await form.getByLabel('Date').fill(date);
-  await form.getByRole('button', { name: 'Add' }).click();
+  await page.getByRole('button', { name: 'Make an account' }).click();
+  await page.getByLabel('Your name').fill('Rui');
+  await page.getByLabel('Email').fill(`rui-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`);
+  await page.getByLabel('Password').fill('a long password');
+  await page.getByRole('button', { name: 'Make the account' }).click();
+  await expect(page.getByText("Rui's expenses")).toBeVisible();
 }
 
-const summaryValue = (page, label) => page.locator('.summary .card', { hasText: label }).locator('strong');
+async function write(page, { kind = 'spent', what, amount, category }) {
+  const line = page.locator('form.entry-line').first();
+  await line.getByRole('button', { name: kind, exact: true }).click();
+  await line.getByLabel('What').fill(what);
+  await line.getByLabel('R$').fill(amount);
+  if (category) await line.getByLabel('Category').selectOption({ label: category });
+  await line.getByRole('button', { name: 'Write it down' }).click();
+}
 
-test('adds an expense and shows it in the summary and the list', async ({ page }) => {
-  await add(page, { description: 'Groceries', amount: '42.50' });
-  await expect(summaryValue(page, 'Expenses')).toHaveText('$42.50');
-  await expect(summaryValue(page, 'Month balance')).toHaveText('-$42.50');
-  await expect(page.locator('.entry-list')).toContainText('Groceries');
+const figure = (page, label) => page.locator('.figures div', { hasText: label }).locator('dd');
+const plain = (text) => text.replace(/\s/g, ' ');
 
-  await add(page, { type: 'Income', description: 'Freelance job', amount: '100' });
-  await expect(summaryValue(page, 'Income')).toHaveText('$100.00');
-  await expect(summaryValue(page, 'Month balance')).toHaveText('$57.50');
-  await expect(page.locator('.summary .card', { hasText: 'Month balance' })).toContainText('Kept 58% of what came in');
+test('a new account writes down an expense and an income', async ({ page }) => {
+  await signUp(page);
+  await expect(page.locator('.story')).toContainText('Nothing written down');
+
+  await write(page, { what: 'Groceries', amount: '42,50', category: 'Food' });
+  await expect(page.locator('.ledger-days')).toContainText('Groceries');
+  await expect(figure(page, 'went out')).toHaveText(/42,50/);
+
+  await write(page, { kind: 'got', what: 'Freelance job', amount: '100', category: 'Freelance' });
+  await expect(figure(page, 'came in')).toHaveText(/100,00/);
+  await expect(figure(page, 'left')).toHaveText(/57,50/);
+  expect(plain(await page.locator('.story').innerText())).toContain('Of the R$ 100 that came in, R$ 58 is still here.');
 });
 
-test('says what is wrong with the form instead of adding', async ({ page }) => {
-  await add(page, { description: 'Coffee', amount: 'abc' });
-  await expect(page.getByText('Invalid amount. Example: 25.90')).toBeVisible();
-  await expect(page.getByText('Nothing added in October 2026.')).toBeVisible();
+test('says what is wrong instead of saving', async ({ page }) => {
+  await signUp(page);
+  await write(page, { what: 'Coffee', amount: 'abc' });
+  await expect(page.getByText('The amount should look like 25,90 or 1.200')).toBeVisible();
+  await expect(page.getByText('A blank page for')).toBeVisible();
 });
 
-test('deletes an entry and brings it back with undo', async ({ page }) => {
-  await add(page, { description: 'Gym', amount: '30' });
-  await page.getByRole('button', { name: 'Delete Gym' }).click();
-  await expect(page.getByRole('status')).toContainText('Deleted "Gym"');
-  await expect(page.locator('.entry-list')).toHaveCount(0);
-
-  await page.getByRole('button', { name: 'Undo' }).click();
-  await expect(page.locator('.entry-list')).toContainText('Gym');
-  await expect(summaryValue(page, 'Expenses')).toHaveText('$30.00');
-});
-
-test('edits an entry', async ({ page }) => {
-  await add(page, { description: 'Taxi', amount: '12' });
+test('edits, deletes and brings an entry back', async ({ page }) => {
+  await signUp(page);
+  await write(page, { what: 'Taxi', amount: '12' });
   await page.getByRole('button', { name: 'Edit Taxi' }).click();
-  await page.getByLabel('Amount ($)').fill('15');
-  await page.getByRole('button', { name: 'Save' }).click();
-  await expect(summaryValue(page, 'Expenses')).toHaveText('$15.00');
+  const editing = page.locator('form.entry-line.editing');
+  await editing.getByLabel('R$').fill('15');
+  await editing.getByRole('button', { name: 'Save' }).click();
+  await expect(figure(page, 'went out')).toHaveText(/15,00/);
+
+  await page.getByRole('button', { name: 'Delete Taxi' }).click();
+  await expect(page.getByRole('status')).toContainText('Crossed out “Taxi”');
+  await expect(page.getByText('A blank page for')).toBeVisible();
+  await page.getByRole('button', { name: 'undo' }).click();
+  await expect(page.locator('.ledger-days')).toContainText('Taxi');
+  await expect(figure(page, 'went out')).toHaveText(/15,00/);
 });
 
-test('filters by type and searches', async ({ page }) => {
-  await page.getByRole('button', { name: 'Load sample data' }).click();
-  const list = page.locator('.entry-list');
-  await expect(list).toContainText('Salary');
+test('a budget that slips shows up in the story', async ({ page }) => {
+  await signUp(page);
+  await write(page, { what: 'Market', amount: '50', category: 'Food' });
+  await page.getByRole('button', { name: 'categories' }).click();
+  const budget = page.getByLabel('Monthly budget for Food');
+  await budget.fill('40');
+  await budget.press('Enter');
+  await expect(budget).toHaveValue('40,00');
 
-  await page.getByRole('button', { name: 'Expenses', exact: true }).click();
-  await expect(list).not.toContainText('Salary');
-  await expect(list).toContainText('Rent');
-
-  await page.getByLabel('Search entries').fill('groceries');
-  await expect(list.locator('li')).toHaveCount(2);
-
-  await page.getByLabel('Search entries').fill('nothing like this');
-  await expect(page.getByText('No entries match the filter.')).toBeVisible();
-  await page.getByRole('button', { name: 'Clear filter' }).click();
-  await expect(list).toContainText('Salary');
+  await page.getByRole('button', { name: 'month' }).click();
+  expect(plain(await page.locator('.story').innerText())).toContain('Food went R$ 10 over its budget.');
+  await expect(page.locator('.budgets')).toContainText('R$ 10 over');
 });
 
-test('moves between months, and jumps to the month of a new entry', async ({ page }) => {
+test('a category with entries moves them before it goes', async ({ page }) => {
+  await signUp(page);
+  await write(page, { what: 'Bus', amount: '4,40', category: 'Transport' });
+  await page.getByRole('button', { name: 'categories' }).click();
+  await page.getByRole('button', { name: 'Delete Transport' }).click();
+  await page.getByLabel(/Move its/).selectOption({ label: 'Other' });
+  await page.getByRole('button', { name: 'Move and delete' }).click();
+  await expect(page.getByRole('button', { name: 'Delete Transport' })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'month' }).click();
+  await expect(page.locator('.ledger-days')).toContainText('Other');
+});
+
+test("the demo opens Marina's six months", async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: "Open Marina's notebook" }).click();
+  await expect(page.getByText("Marina's expenses")).toBeVisible();
   await page.getByRole('button', { name: 'Previous month' }).click();
-  await expect(page.locator('.month-nav')).toContainText('September 2026');
-  await page.getByRole('button', { name: 'Next month' }).click();
-  await expect(page.locator('.month-nav')).toContainText('October 2026');
-
-  await add(page, { description: 'Old bill', amount: '20', date: '2026-08-03' });
-  await expect(page.locator('.month-nav')).toContainText('August 2026');
-  await expect(page.locator('.entry-list')).toContainText('Old bill');
-});
-
-test('keeps the entries after a reload', async ({ page }) => {
-  await add(page, { description: 'Books', amount: '25' });
-  await page.reload();
-  await expect(page.locator('.entry-list')).toContainText('Books');
-  await expect(summaryValue(page, 'Expenses')).toHaveText('$25.00');
-});
-
-test('a backup brings the entries back in a clean browser', async ({ page }) => {
-  await add(page, { description: 'Books', amount: '25' });
-  const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Download backup' }).click();
-  const file = await (await download).path();
-
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await expect(page.getByText('Nothing added in October 2026')).toBeVisible();
-
-  await page.locator('.backup input[type=file]').setInputFiles(file);
-  await expect(page.locator('.backup')).toContainText('1 entry restored.');
-  await expect(summaryValue(page, 'Expenses')).toHaveText('$25.00');
-
-  await page.locator('.backup input[type=file]').setInputFiles(file);
-  await expect(page.locator('.backup')).toContainText('already here');
+  await expect(page.locator('.story')).toContainText('you spent');
+  await expect(page.locator('.six-bars button')).toHaveCount(6);
+  await page.getByRole('button', { name: 'log out' }).click();
+  await expect(page.getByRole('heading', { name: 'Log in' })).toBeVisible();
 });
