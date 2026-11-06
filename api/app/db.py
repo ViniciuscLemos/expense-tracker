@@ -1,4 +1,6 @@
+import os
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
@@ -6,7 +8,18 @@ from psycopg_pool import ConnectionPool
 MIGRATIONS = Path(__file__).resolve().parent.parent / "migrations"
 
 
+def with_database(url: str, name: str | None) -> str:
+    """The same server and login with another database: on Render this service borrows the
+    connection of the link shortener (same Neon project) and only swaps the database name,
+    so the password is never copied by hand."""
+    if not name:
+        return url
+    parts = urlsplit(url)
+    return urlunsplit(parts._replace(path=f"/{name}"))
+
+
 def make_pool(url: str, size: int = 5) -> ConnectionPool:
+    url = with_database(url, os.environ.get("DATABASE_NAME"))
     return ConnectionPool(url, min_size=1, max_size=size, kwargs={"row_factory": dict_row}, open=True)
 
 

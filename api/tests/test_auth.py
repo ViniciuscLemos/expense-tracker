@@ -63,3 +63,10 @@ def test_people_only_see_their_own_things(app, ana):
     response = bia.post("/api/entries", json={"kind": "expense", "category_id": anas_food["id"],
                                               "amount_cents": 100, "description": "x", "day": "2026-10-01"})
     assert response.status_code == 422
+
+
+def test_the_database_name_can_be_swapped_keeping_the_login():
+    from app.db import with_database
+    url = "postgresql://owner@host.neon.tech/neondb?sslmode=require&password=secret"
+    assert with_database(url, "expenses") == "postgresql://owner@host.neon.tech/expenses?sslmode=require&password=secret"
+    assert with_database(url, None) == url

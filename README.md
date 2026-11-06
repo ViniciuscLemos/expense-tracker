@@ -49,7 +49,7 @@ It lives in `api/`, written in FastAPI with psycopg, and the SQL is written by h
 
 ## Tests
 
-- **API:** 19 tests in pytest, run against a real Postgres.
+- **API:** 20 tests in pytest, run against a real Postgres.
 - **Page:** unit tests in vitest for the money parsing, the calendar and the sentences.
 - **End to end:** Playwright clicks through the built page with the real API and database behind it, on a desktop and on a phone size. Then axe checks accessibility, in light and dark mode.
 - CI runs all of it, with Postgres in a service container.
@@ -82,7 +82,7 @@ npm run build && E2E_DATABASE_URL=postgresql://... npm run e2e   # end to end
 
 ## Putting it online
 
-It runs on Render's free plan as one Docker service (`Dockerfile` + `render.yaml`): Node builds the page, then a small Python image serves the page and the API from the same address. The database is a free [Neon](https://neon.tech) Postgres. On Render, choose New > Blueprint, pick this repo and paste the Neon connection string in `DATABASE_URL`.
+It runs on Render's free plan as one Docker service (`Dockerfile` + `render.yaml`): Node builds the page, then a small Python image serves the page and the API from the same address. The database is a free [Neon](https://neon.tech) Postgres. It shares the Neon project of my [link shortener](https://github.com/ViniciuscLemos/url-shortener): the blueprint borrows that service's `DATABASE_URL` and `DATABASE_NAME=expenses` swaps the database, so the password is never copied by hand. On its own, paste a connection string in `DATABASE_URL` instead.
 
 The free instance sleeps after 15 minutes without visits, so the first visit after that takes a while.
 
