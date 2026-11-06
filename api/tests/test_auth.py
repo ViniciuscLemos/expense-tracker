@@ -66,7 +66,11 @@ def test_people_only_see_their_own_things(app, ana):
 
 
 def test_the_database_name_can_be_swapped_keeping_the_login():
-    from app.db import with_database
-    url = "postgresql://owner@host.neon.tech/neondb?sslmode=require&password=secret"
-    assert with_database(url, "expenses") == "postgresql://owner@host.neon.tech/expenses?sslmode=require&password=secret"
-    assert with_database(url, None) == url
+    from psycopg.conninfo import conninfo_to_dict
+    from app.db import conninfo
+    # a password with "=" in it, the way Neon sometimes makes them
+    url = "postgresql://owner@host.neon.tech/neondb?sslmode=require&password=ab=cd%2Fe"
+    assert conninfo_to_dict(conninfo(url, "expenses")) == {
+        "host": "host.neon.tech", "user": "owner", "dbname": "expenses", "sslmode": "require", "password": "ab=cd/e"}
+    assert conninfo_to_dict(conninfo("postgresql://postgres:pw@localhost:5432/x")) == {
+        "host": "localhost", "port": "5432", "user": "postgres", "password": "pw", "dbname": "x"}

@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import unquote, urlsplit
+
+from psycopg.conninfo import make_conninfo
 
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
@@ -8,18 +10,32 @@ from psycopg_pool import ConnectionPool
 MIGRATIONS = Path(__file__).resolve().parent.parent / "migrations"
 
 
-def with_database(url: str, name: str | None) -> str:
-    """The same server and login with another database: on Render this service borrows the
-    connection of the link shortener (same Neon project) and only swaps the database name,
-    so the password is never copied by hand."""
-    if not name:
-        return url
+def conninfo(url: str, database: str | None = None) -> str:
+    """Turns a postgres:// URL into libpq's key=value form, optionally with another database.
+
+    On Render this service borrows the connection of the link shortener (same Neon project)
+    and only swaps the database name, so the password is never copied by hand. That URL has
+    the password as a query parameter, and Neon passwords can contain "=", which Node's
+    parser takes but libpq refuses in a URI. Split by hand (at the first "=") it works."""
     parts = urlsplit(url)
-    return urlunsplit(parts._replace(path=f"/{name}"))
+    params = {}
+    if parts.hostname:
+        params["host"] = parts.hostname
+    if parts.port:
+        params["port"] = parts.port
+    if parts.username:
+        params["user"] = unquote(parts.username)
+    if parts.password:
+        params["password"] = unquote(parts.password)
+    params["dbname"] = database or unquote(parts.path.lstrip("/")) or None
+    for pair in filter(None, parts.query.split("&")):
+        key, _, value = pair.partition("=")
+        params[unquote(key)] = unquote(value)
+    return make_conninfo(**{k: v for k, v in params.items() if v is not None})
 
 
 def make_pool(url: str, size: int = 5) -> ConnectionPool:
-    url = with_database(url, os.environ.get("DATABASE_NAME"))
+    url = conninfo(url, os.environ.get("DATABASE_NAME"))
     return ConnectionPool(url, min_size=1, max_size=size, kwargs={"row_factory": dict_row}, open=True)
 
 
