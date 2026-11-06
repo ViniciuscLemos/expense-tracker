@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
-import { amountField, parseAmount } from '../lib/finance';
+import { amountField, formatMoney, parseAmount } from '../lib/finance';
 
 const PALETTE = ['#c2703d', '#4a6fa5', '#5b8c85', '#b5577a', '#c44536', '#7a6aa8', '#a68a3d', '#3f7d58', '#6a9a4f', '#8a8378'];
 
@@ -130,6 +130,60 @@ function NewCategory({ kind, onChanged }) {
   );
 }
 
+// what's written down on its own every month: rent, salary, the internet bill
+function Recurring({ categories }) {
+  const [list, setList] = useState(null);
+  const [error, setError] = useState('');
+  const name = (id) => categories.find((c) => c.id === id)?.name || '';
+
+  const load = () => api('/recurring').then(setList).catch((e) => setError(e.message));
+  useEffect(() => { load(); }, []);
+
+  async function act(path, options) {
+    setError('');
+    try {
+      await api(path, options);
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  if (!list) return null;
+  const nextLabel = (r) => new Date(`${r.next_day}T12:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  return (
+    <section className="category-group recurring">
+      <h2>Every month</h2>
+      {list.length === 0 ? (
+        <p className="quiet">
+          Nothing yet. When writing an entry, tick <em>every month</em> and it gets written down on its own on that day.
+        </p>
+      ) : (
+        <ul>
+          {list.map((r) => (
+            <li key={r.id} className={`recurring-row ${r.active ? '' : 'archived'}`}>
+              <span className="name-text">{r.description}</span>
+              <span className="figures-small">{r.kind === 'income' ? '+' : ''}{formatMoney(r.amount_cents)}</span>
+              <span className="count">on the {r.day_of_month}{['th', 'st', 'nd', 'rd'][(r.day_of_month % 10 > 3 || [11, 12, 13].includes(r.day_of_month)) ? 0 : r.day_of_month % 10]} · {name(r.category_id)}</span>
+              <span className="count">{r.active ? `next ${nextLabel(r)}` : 'paused'}</span>
+              <span className="row-actions always">
+                <button type="button" className="link" onClick={() => act(`/recurring/${r.id}`, { method: 'PATCH', body: { active: !r.active } })}>
+                  {r.active ? 'pause' : 'start again'}
+                </button>
+                <button type="button" className="link" aria-label={`Stop ${r.description}`}
+                  onClick={() => act(`/recurring/${r.id}`, { method: 'DELETE' })}>stop</button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="quiet">Pausing or stopping keeps what was already written down. Changing the amount only changes the months to come.</p>
+      {error && <p className="error" role="alert">{error}</p>}
+    </section>
+  );
+}
+
 function Import({ onChanged }) {
   const input = useRef(null);
   const [notice, setNotice] = useState('');
@@ -200,6 +254,8 @@ export default function Categories({ categories, onChanged }) {
           </section>
         );
       })}
+
+      <Recurring categories={categories} />
 
       <Import onChanged={onChanged} />
     </main>

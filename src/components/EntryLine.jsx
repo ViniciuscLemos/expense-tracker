@@ -10,6 +10,7 @@ export default function EntryLine({ categories, editing, defaultDay, onSave, onC
   const [description, setDescription] = useState(editing?.description || '');
   const [amount, setAmount] = useState(editing ? amountField(editing.amount_cents) : '');
   const [day, setDay] = useState(editing?.day || defaultDay || today());
+  const [repeat, setRepeat] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const first = useRef(null);
@@ -27,11 +28,12 @@ export default function EntryLine({ categories, editing, defaultDay, onSave, onC
     if (!day) return setError('Which day?');
     setBusy(true);
     try {
-      await onSave({ kind, category_id: Number(categoryId), amount_cents: cents, description: description.trim(), day });
+      await onSave({ kind, category_id: Number(categoryId), amount_cents: cents, description: description.trim(), day }, repeat);
       setError('');
       if (!editing) {
         setDescription('');
         setAmount('');
+        setRepeat(false);
         first.current?.focus();
       }
     } catch (err) {
@@ -71,6 +73,13 @@ export default function EntryLine({ categories, editing, defaultDay, onSave, onC
         <span>Day</span>
         <input type="date" value={day} onChange={(e) => setDay(e.target.value)} />
       </label>
+
+      {!editing && (
+        <label className="repeat">
+          <input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} />
+          every month, on this day
+        </label>
+      )}
 
       <div className="line-actions">
         <button type="submit" className="ink" disabled={busy}>{editing ? 'Save' : 'Write it down'}</button>

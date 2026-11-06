@@ -35,6 +35,7 @@ MONTH = [
 ]
 # the months before get the same entries a bit cheaper or pricier, so the six months differ
 FACTORS = [1.08, 0.94, 1.15, 0.9, 1.02, 0.97]
+RECURRING = {"Salary", "Rent", "Internet"}
 BUDGETS = {"Food": 90000, "Fun": 25000, "Shopping": 40000, "Transport": 15000}
 
 
@@ -65,3 +66,20 @@ def reset(pool):
         with conn.cursor() as cur:
             cur.executemany("INSERT INTO entries (user_id, kind, category_id, amount_cents, description, day) "
                             "VALUES (%s, %s, %s, %s, %s, %s)", rows)
+
+        # the ones that come every month are recurring, like they'd be for a real person,
+        # and the entries already there are linked to them
+        for day, kind, text, category, cents in MONTH:
+            if text not in RECURRING:
+                continue
+            first = date(now.year, now.month, 1)
+            due = date(first.year, first.month, min(day, last_day(first)))
+            if due <= now:
+                nxt = shift(first, 1)
+                due = date(nxt.year, nxt.month, min(day, last_day(nxt)))
+            rid = conn.execute(
+                "INSERT INTO recurring (user_id, kind, category_id, amount_cents, description, day_of_month, next_day) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id",
+                (user_id, kind, cats[(kind, category)], cents, text, day, due)).fetchone()["id"]
+            conn.execute("UPDATE entries SET recurring_id = %s WHERE user_id = %s AND description = %s",
+                         (rid, user_id, text))

@@ -88,6 +88,24 @@ test('a category with entries moves them before it goes', async ({ page }) => {
   await expect(page.locator('.ledger-days')).toContainText('Other');
 });
 
+test('every month: written once, shows up on its own and in the list', async ({ page }) => {
+  await signUp(page);
+  const line = page.locator('form.entry-line').first();
+  await line.getByLabel('What').fill('Internet');
+  await line.getByLabel('R$').fill('99,90');
+  await line.getByLabel('Category').selectOption({ label: 'Housing' });
+  await line.getByLabel('every month, on this day').check();
+  await line.getByRole('button', { name: 'Write it down' }).click();
+  await expect(page.locator('.ledger-days')).toContainText('every month');
+  await expect(figure(page, 'went out')).toHaveText(/99,90/);
+
+  await page.getByRole('button', { name: 'categories' }).click();
+  const row = page.locator('.recurring-row', { hasText: 'Internet' });
+  await expect(row).toContainText('next');
+  await row.getByRole('button', { name: 'pause' }).click();
+  await expect(row).toContainText('paused');
+});
+
 test("the demo opens Marina's six months", async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: "Open Marina's notebook" }).click();

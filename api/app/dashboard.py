@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query
 
 from .deps import current_user, db
 from .months import label, month_range, shift, today
+from .recurring import post_due
 
 router = APIRouter(prefix="/api")
 
@@ -19,6 +20,7 @@ def dashboard(month: str = Query(pattern=r"^\d{4}-\d{2}$"), user=Depends(current
     """Everything the month's page shows, in one request: the totals and last month's, the
     categories against their budgets, every day of the month and the last six months."""
     uid = user["id"]
+    post_due(conn, uid)
     start, end = month_range(month)
     now = today()
 

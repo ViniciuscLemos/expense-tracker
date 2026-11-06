@@ -64,8 +64,14 @@ export default function Month({ categories, onCategories }) {
     if (turn === listTurn.current) setList((l) => ({ entries: [...l.entries, ...page.entries], next: page.next, loading: false }));
   }
 
-  async function add(entry) {
-    await api('/entries', { method: 'POST', body: entry });
+  async function add(entry, repeat) {
+    if (repeat) {
+      // written down once, and the server writes it again on the same day every month
+      const { day, ...rest } = entry;
+      await api('/recurring', { method: 'POST', body: { ...rest, first_day: day } });
+    } else {
+      await api('/entries', { method: 'POST', body: entry });
+    }
     // written in another month: go there, so it's clear it was saved
     if (monthOf(entry.day) !== month) setMonth(monthOf(entry.day));
     else await refresh();

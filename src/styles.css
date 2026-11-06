@@ -228,7 +228,8 @@ footer a { color: inherit; }
   grid-template-columns: 64px minmax(0, 1fr) 150px 140px;
   grid-template-areas:
     "kind what what amount"
-    "kind which when actions";
+    "kind which when actions"
+    "kind repeat repeat repeat";
   gap: 10px 18px;
   align-items: end;
   padding: 4px 0 20px;
@@ -515,7 +516,7 @@ footer a { color: inherit; }
   .ledger { border-left: 0; padding-left: 0; }
   .entry-line {
     grid-template-columns: 1fr 1fr;
-    grid-template-areas: "kind kind" "what what" "amount when" "which which" "actions actions";
+    grid-template-areas: "kind kind" "what what" "amount when" "which which" "repeat repeat" "actions actions";
   }
   .entry-line .kind { flex-direction: row; gap: 18px; padding-top: 0; }
   .entry-line .line-actions { justify-content: flex-start; }
@@ -529,4 +530,24 @@ footer a { color: inherit; }
   .category-row .budget-field { grid-column: 2; }
   .category-row .row-actions { grid-column: 3; grid-row: 1; }
   .login { padding: 32px 16px; }
+}
+
+/* every month */
+.entry-line .repeat { grid-area: repeat; flex-direction: row; align-items: center; gap: 7px; font-size: 13px; color: var(--ink-soft); }
+.entry-line .repeat input { accent-color: var(--pen); margin: 0; }
+.entry .cat .monthly { color: var(--ink-faint); font-style: italic; }
+.recurring-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 170px 90px auto;
+  gap: 14px;
+  align-items: baseline;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--rule-faint);
+}
+.recurring-row .figures-small { text-align: right; }
+.recurring-row.archived > :not(.row-actions) { opacity: 0.45; }
+.recurring .quiet { margin-top: 10px; }
+@media (max-width: 640px) {
+  .recurring-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .recurring-row .count { grid-column: 1; font-size: 12px; }
 }

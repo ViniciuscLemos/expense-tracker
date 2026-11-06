@@ -18,6 +18,7 @@ I wanted it to feel like the notebook people actually use for this, not like a d
 
 - **The month in sentences.** Instead of three boxes with numbers at the top, it says something like *"In October you spent R$ 4.092, about R$ 132 a day. That's R$ 530 more than September. Of the R$ 5.000 that came in, R$ 908 was kept. 3 budgets went over, Shopping by the most."* A month that's still going isn't compared with a whole one, because on the 5th it would always look cheaper.
 - **Writing an entry is one line.** You pick *spent* or *got*, then type what, how much, the category and the day. The amount can be typed the Brazilian way (`1.234,56`) or the other way (`1,234.56`).
+- **Every month, written once.** Rent, salary, the internet bill: tick *every month* when writing it and it gets written down on its own on that day, catching up on months nobody opened the app. A 31st lands on the last day of shorter months. Pausing or stopping keeps what was already there, and deleting one of the generated entries doesn't bring it back.
 - **The entries are grouped by day,** with what went out and came in on each day. You can edit an entry in place. Deleting crosses it out with an "undo" for a few seconds, instead of asking "are you sure?" first.
 - **Budgets per category.** In the month that's still going there's a small mark on each bar for where the spending should be by today. 60% of the food budget gone on the 10th looks wrong, and on the 25th it doesn't.
 - **A calendar of the month,** each day darker the more went out. Clicking a day jumps to it in the list. The darkest shade goes to the second biggest day, otherwise rent day would make every other day look empty.
@@ -47,11 +48,12 @@ It lives in `api/`, written in FastAPI with psycopg, and the SQL is written by h
   - the last six months;
   - the three biggest expenses.
 - Each request uses one connection and one transaction, and the commit happens *before* the answer goes out. Without that, the browser could ask "who am I?" with the new session cookie before the session was saved. The end-to-end tests caught this one.
+- Recurring entries keep the *next date* to write, instead of checking "is there one this month?". That's what lets a deleted one stay deleted. The page asks for the list and the month at the same time, so the rows are read with `FOR UPDATE`, and the second request waits and finds nothing left to write.
 - The interactive docs are at `/api/docs`.
 
 ## Tests
 
-- **API:** 20 tests in pytest, run against a real Postgres.
+- **API:** 27 tests in pytest, run against a real Postgres.
 - **Page:** unit tests in vitest for the money parsing, the calendar and the sentences.
 - **End to end:** Playwright clicks through the built page with the real API and database behind it, on a desktop and on a phone size. Then axe checks accessibility, in light and dark mode.
 - CI runs all of it, with Postgres in a service container.

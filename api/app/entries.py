@@ -10,7 +10,7 @@ from .months import month_range
 
 router = APIRouter(prefix="/api/entries")
 
-FIELDS = "e.id, e.kind, e.category_id, e.amount_cents, e.description, e.day, e.created_at"
+FIELDS = "e.id, e.kind, e.category_id, e.amount_cents, e.description, e.day, e.created_at, e.recurring_id"
 PAGE = 50
 
 
@@ -66,6 +66,8 @@ def list_entries(
     """Newest first, 50 at a time. `after` is the `next` of the page before: the next page
     starts right after that (day, id), so it doesn't slow down or skip rows like OFFSET would
     when entries are added in between."""
+    from .recurring import post_due  # here and not at the top: recurring uses this module
+    post_due(conn, user["id"])
     where, params = ["e.user_id = %s"], [user["id"]]
     if month:
         start, end = month_range(month)
@@ -103,7 +105,7 @@ def add_entry(body: NewEntry, user=Depends(current_user), conn=Depends(db, scope
     check_category(conn, user["id"], body.category_id, body.kind)
     return conn.execute(
         "INSERT INTO entries (user_id, kind, category_id, amount_cents, description, day) "
-        "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, kind, category_id, amount_cents, description, day, created_at",
+        "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, kind, category_id, amount_cents, description, day, created_at, recurring_id",
         (user["id"], body.kind, body.category_id, body.amount_cents, body.description.strip(), body.day)).fetchone()
 
 
@@ -121,7 +123,7 @@ def change_entry(entry_id: int, body: EntryChange, user=Depends(current_user), c
     columns = ", ".join(f"{column} = %({column})s" for column in sent)
     return conn.execute(
         f"UPDATE entries SET {columns}, updated_at = now() WHERE id = %(id)s "
-        "RETURNING id, kind, category_id, amount_cents, description, day, created_at",
+        "RETURNING id, kind, category_id, amount_cents, description, day, created_at, recurring_id",
         {**sent, "id": entry_id}).fetchone()
 
 

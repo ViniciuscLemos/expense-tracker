@@ -32,6 +32,7 @@ export default function Ledger({ entries, categories, editing, onEdit, onCancel,
                   <span className="cat">
                     <i style={{ background: category?.color }} aria-hidden="true" />
                     {category?.name}
+                    {e.recurring_id && <span className="monthly" title="Written down every month on its own">· every month</span>}
                   </span>
                   <span className="amount">{e.kind === 'income' ? '+' : ''}{formatMoney(e.amount_cents)}</span>
                   <span className="row-actions">
