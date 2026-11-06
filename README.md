@@ -34,6 +34,26 @@ On the phone the layout turns into a single column, and in dark mode it looks li
   <img src="docs/screenshot-dark.png" alt="Expense Tracker in dark mode" width="520">
 </p>
 
+## The API (in progress)
+
+The browser version keeps everything in localStorage, which is fine until you want the same data on the phone and the computer. So there's a back-end now in `api/`, in Python with FastAPI and Postgres, and the page will move to it next:
+
+- accounts with email and password (bcrypt), a session cookie that JavaScript can't read, and 5 wrong passwords in 15 minutes lock that email for a while
+- entries and categories with full CRUD. Categories can be renamed, recolored, given a monthly budget or archived. One that still has entries can only be deleted by moving them to another category first
+- the database itself refuses an entry in a category of another person or of the other kind (a composite foreign key), not only the Python code
+- the list comes 50 at a time and pages by `(day, id)` instead of `OFFSET`, so page 40 is as fast as page 1 and nothing gets skipped when entries are added in between
+- `GET /api/dashboard?month=2026-10` brings the whole month in one request: totals and last month's, each category against its budget, every day of the month (`generate_series`, so days with nothing are there too) and the last six months
+- `POST /api/entries/import` takes the backup file of the browser version, and importing it twice adds nothing
+- the interactive docs are at `/api/docs`
+
+The tests run against a real Postgres, in CI too:
+
+```bash
+cd api
+pip install -r requirements-dev.txt
+TEST_DATABASE_URL=postgresql://postgres@localhost:5432/expenses_test pytest
+```
+
 ## Running
 
 ```bash
