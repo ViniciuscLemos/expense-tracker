@@ -1,13 +1,13 @@
 {
   "name": "Expense Tracker",
   "short_name": "Expenses",
-  "description": "Write down the month's income and expenses and see where the money is going.",
+  "description": "Write down what you spend and what comes in, and read how the month went in plain words.",
   "lang": "en",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f3f5f4",
-  "theme_color": "#2a9d6f",
+  "background_color": "#f5f1e8",
+  "theme_color": "#f5f1e8",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },

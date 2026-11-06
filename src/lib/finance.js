@@ -1,82 +1,38 @@
 // Amounts are kept in cents (integers) so there are no rounding problems:
 // in JS 0.1 + 0.2 is 0.30000000000000004.
 
-export const CATEGORIES = {
-  expense: ['Food', 'Housing', 'Transport', 'Fun', 'Health', 'Education', 'Shopping', 'Other'],
-  income: ['Salary', 'Freelance', 'Allowance', 'Other'],
-};
-
-// "12.50" / "12,50" / "1,234.56" / "1,500" -> 1250 / 1250 / 123456 / 150000 (or null if it can't)
+// "12.50" / "12,50" / "1,234.56" / "1.234,56" / "1,500" -> 1250 / 1250 / 123456 / 123456 / 150000 (or null)
 export function parseAmount(text) {
-  let clean = String(text).trim().replace(/[$\s]/g, '');
-  if (clean.includes('.')) clean = clean.replace(/,/g, '');
-  // a comma followed by 3 digits and no dot is a thousands separator: "1,500" is one thousand five hundred
-  else if (/^\d{1,3}(,\d{3})+$/.test(clean)) clean = clean.replace(/,/g, '');
-  // otherwise the comma is a decimal one ("12,50"), for people used to that
-  else clean = clean.replace(',', '.');
+  let clean = String(text).trim().replace(/(R\$|\$|\s)/g, '');
+  const lastDot = clean.lastIndexOf('.');
+  const lastComma = clean.lastIndexOf(',');
+  if (lastDot !== -1 && lastComma !== -1) {
+    // both: whichever comes last is the decimal one
+    clean = lastComma > lastDot ? clean.replace(/\./g, '').replace(',', '.') : clean.replace(/,/g, '');
+  } else if (lastComma !== -1) {
+    // a comma followed by 3 digits is a thousands separator: "1,500" is one thousand five hundred
+    clean = /^\d{1,3}(,\d{3})+$/.test(clean) ? clean.replace(/,/g, '') : clean.replace(',', '.');
+  } else if (/^\d{1,3}(\.\d{3})+$/.test(clean)) {
+    // "1.500" the Brazilian way
+    clean = clean.replace(/\./g, '');
+  }
   if (!/^\d+(\.\d{1,2})?$/.test(clean)) return null;
   const cents = Math.round(Number(clean) * 100);
   return cents > 0 ? cents : null;
 }
 
-export function formatMoney(cents) {
-  return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-}
+const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const BRL_ROUND = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+
+export const formatMoney = (cents) => BRL.format(cents / 100);
+// for sentences, where "R$ 174" reads better than "R$ 174,33"
+export const roughMoney = (cents) => BRL_ROUND.format(Math.round(cents / 100));
+
+// the amount as it goes back in the field when editing: "214,60"
+export const amountField = (cents) => (cents / 100).toFixed(2).replace('.', ',');
 
 // "2026-10" from "2026-10-06"
 export const monthOf = (date) => date.slice(0, 7);
-
-export function inMonth(entries, month) {
-  return entries
-    .filter((e) => monthOf(e.date) === month)
-    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
-}
-
-export function summary(entries) {
-  let income = 0;
-  let expenses = 0;
-  for (const e of entries) {
-    if (e.type === 'income') income += e.amount;
-    else expenses += e.amount;
-  }
-  return { income, expenses, balance: income - expenses };
-}
-
-// how much the expenses went up or down (in %) from the month before, or null without a base to compare
-export function expenseChange(entries, month) {
-  const before = summary(inMonth(entries, shiftMonth(month, -1))).expenses;
-  if (!before) return null;
-  const now = summary(inMonth(entries, month)).expenses;
-  return Math.round((100 * (now - before)) / before);
-}
-
-// share of the income that was left over, in %. Negative when more went out than came in
-export function savingsRate({ income, balance }) {
-  if (!income) return null;
-  return Math.round((100 * balance) / income);
-}
-
-// spent per day: over the whole month when it's over, over the days so far in the current one,
-// and null for a month that hasn't started
-export function dailyAverage(expenses, month, todayIso) {
-  const current = monthOf(todayIso);
-  if (month > current) return null;
-  const [year, m] = month.split('-').map(Number);
-  const days = month === current ? Number(todayIso.slice(8, 10)) : new Date(year, m, 0).getDate();
-  return Math.round(expenses / days);
-}
-
-// expenses added up by category, biggest first
-export function expensesByCategory(entries) {
-  const total = {};
-  for (const e of entries) {
-    if (e.type !== 'expense') continue;
-    total[e.category] = (total[e.category] || 0) + e.amount;
-  }
-  return Object.entries(total)
-    .map(([category, amount]) => ({ category, amount }))
-    .sort((a, b) => b.amount - a.amount);
-}
 
 export function shiftMonth(month, by) {
   const [year, m] = month.split('-').map(Number);
@@ -84,101 +40,70 @@ export function shiftMonth(month, by) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-export function monthName(month) {
+export function monthName(month, style = 'long') {
   const [year, m] = month.split('-').map(Number);
-  return new Date(year, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  return new Date(year, m - 1, 1).toLocaleDateString('en-US', { month: style });
 }
+
+export const yearOf = (month) => month.slice(0, 4);
 
 export function today() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export function toCsv(entries) {
-  const quote = (s) => `"${String(s).replace(/"/g, '""')}"`;
-  const rows = entries.map((e) => [
-    e.date,
-    quote(e.description),
-    e.category,
-    e.type === 'income' ? 'Income' : 'Expense',
-    ((e.type === 'income' ? 1 : -1) * e.amount / 100).toFixed(2),
-  ].join(','));
-  return ['Date,Description,Category,Type,Amount', ...rows].join('\n');
+function asDate(day) {
+  const [year, m, d] = day.split('-').map(Number);
+  return new Date(year, m - 1, d);
 }
 
-// backup file -> entries that aren't in the list yet (same id = same entry, so restoring twice adds nothing)
-export function mergeBackup(entries, text) {
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error("This file isn't a backup.");
-  }
-  const list = Array.isArray(data) ? data : data?.entries;
-  const valid = (e) =>
-    e && typeof e.id === 'string' && typeof e.description === 'string' && Number.isInteger(e.amount) &&
-    e.amount > 0 && ['income', 'expense'].includes(e.type) && /^\d{4}-\d{2}-\d{2}$/.test(e.date);
-  if (!Array.isArray(list) || !list.every(valid)) throw new Error("This file isn't a backup.");
-  const known = new Set(entries.map((e) => e.id));
-  return list.filter((e) => !known.has(e.id));
-}
+// "Thursday" and "8"
+export const weekday = (day) => asDate(day).toLocaleDateString('en-US', { weekday: 'long' });
+export const dayNumber = (day) => Number(day.slice(8, 10));
 
-// one color per category, used in the donut, in the bars and in the list
-export const CATEGORY_COLORS = {
-  Food: '#f59e0b',
-  Housing: '#6366f1',
-  Transport: '#0ea5e9',
-  Fun: '#ec4899',
-  Health: '#ef4444',
-  Education: '#8b5cf6',
-  Shopping: '#14b8a6',
-  Salary: '#1f8a5e',
-  Freelance: '#22c55e',
-  Allowance: '#84cc16',
-};
-
-export const categoryColor = (category) => CATEGORY_COLORS[category] || '#94a3b8';
-
-// income and expenses of the last `count` months, oldest first, ending in `month`
-export function monthlyTotals(entries, month, count = 6) {
-  const months = Array.from({ length: count }, (_, i) => shiftMonth(month, i - count + 1));
-  const totals = Object.fromEntries(months.map((m) => [m, { month: m, income: 0, expenses: 0 }]));
-  for (const e of entries) {
-    const row = totals[monthOf(e.date)];
-    if (!row) continue;
-    if (e.type === 'income') row.income += e.amount;
-    else row.expenses += e.amount;
-  }
-  return months.map((m) => totals[m]);
-}
-
-// filter of the list: type (all, income, expense) and text in the description or category
-export function filterEntries(entries, { type = 'all', text = '' } = {}) {
-  const term = text.trim().toLowerCase();
-  return entries.filter(
-    (e) =>
-      (type === 'all' || e.type === type) &&
-      (!term || e.description.toLowerCase().includes(term) || e.category.toLowerCase().includes(term))
-  );
-}
-
-// groups entries that are already sorted by date, with the net amount of each day
-export function groupByDate(entries) {
+// groups entries that are already newest first, with what went out and came in that day
+export function groupByDay(entries) {
   const groups = [];
   for (const e of entries) {
     let group = groups.at(-1);
-    if (group?.date !== e.date) {
-      group = { date: e.date, entries: [], net: 0 };
+    if (group?.day !== e.day) {
+      group = { day: e.day, entries: [], spent: 0, earned: 0 };
       groups.push(group);
     }
     group.entries.push(e);
-    group.net += e.type === 'income' ? e.amount : -e.amount;
+    if (e.kind === 'income') group.earned += e.amount_cents;
+    else group.spent += e.amount_cents;
   }
   return groups;
 }
 
-// "Fri, Oct 9"
-export function dayLabel(date) {
-  const [year, m, d] = date.split('-').map(Number);
-  return new Date(year, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+export function toCsv(entries, categoryName) {
+  const quote = (s) => `"${String(s).replace(/"/g, '""')}"`;
+  const rows = entries.map((e) => [
+    e.day,
+    quote(e.description),
+    quote(categoryName(e.category_id)),
+    e.kind === 'income' ? 'Income' : 'Expense',
+    (((e.kind === 'income' ? 1 : -1) * e.amount_cents) / 100).toFixed(2),
+  ].join(','));
+  return ['Date,Description,Category,Type,Amount', ...rows].join('\n');
+}
+
+// the weeks of a month for the calendar, Monday first, with nulls before day 1 and after the last
+export function calendarWeeks(month) {
+  const [year, m] = month.split('-').map(Number);
+  const first = new Date(year, m - 1, 1);
+  const count = new Date(year, m, 0).getDate();
+  const blanks = (first.getDay() + 6) % 7;
+  const cells = [...Array(blanks).fill(null), ...Array.from({ length: count }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`)];
+  while (cells.length % 7) cells.push(null);
+  return Array.from({ length: cells.length / 7 }, (_, i) => cells.slice(i * 7, i * 7 + 7));
+}
+
+// how far into the month a day is, from 0 to 1, for the "where you should be by now" mark
+export function monthProgress(month, todayIso) {
+  if (monthOf(todayIso) < month) return 0;
+  if (monthOf(todayIso) > month) return 1;
+  const [year, m] = month.split('-').map(Number);
+  return dayNumber(todayIso) / new Date(year, m, 0).getDate();
 }

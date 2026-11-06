@@ -1,129 +1,98 @@
 import { describe, expect, it } from 'vitest';
-import { sample } from './sample';
 import {
-  dailyAverage, dayLabel, expenseChange, expensesByCategory, filterEntries, formatMoney, groupByDate, inMonth, mergeBackup, monthlyTotals,
-  monthName, parseAmount, savingsRate,
-  shiftMonth, summary, toCsv,
+  calendarWeeks, formatMoney, groupByDay, monthName, monthProgress, parseAmount, roughMoney, shiftMonth, toCsv,
 } from './finance';
+import { story } from './story';
 
-const entries = [
-  { id: 1, description: 'Salary', amount: 300000, type: 'income', category: 'Salary', date: '2026-10-05', createdAt: 1 },
-  { id: 2, description: 'Groceries', amount: 45090, type: 'expense', category: 'Food', date: '2026-10-06', createdAt: 2 },
-  { id: 3, description: 'Rent', amount: 120000, type: 'expense', category: 'Housing', date: '2026-10-01', createdAt: 3 },
-  { id: 4, description: 'Food delivery', amount: 3850, type: 'expense', category: 'Food', date: '2026-10-03', createdAt: 4 },
-  { id: 5, description: 'Uber', amount: 2200, type: 'expense', category: 'Transport', date: '2026-09-28', createdAt: 5 },
-];
-
-describe('finance', () => {
-  it('restores a backup without repeating entries', () => {
-    const saved = entries.map((e) => ({ ...e, id: String(e.id) }));
-    const backup = JSON.stringify({ version: 1, entries: saved });
-    expect(mergeBackup([], backup)).toHaveLength(5);
-    expect(mergeBackup(saved.slice(0, 3), backup).map((e) => e.id)).toEqual(['4', '5']);
-    expect(() => mergeBackup([], 'not json')).toThrow("isn't a backup");
-    expect(() => mergeBackup([], JSON.stringify([{ id: 'x', amount: -1 }]))).toThrow("isn't a backup");
-  });
-
-  it('how much of the income was saved', () => {
-    expect(savingsRate({ income: 300000, balance: 131060 })).toBe(44);
-    expect(savingsRate({ income: 100000, balance: -25000 })).toBe(-25);
-    expect(savingsRate({ income: 0, balance: -5000 })).toBeNull();
-  });
-
-  it('spent per day, counting only the days so far in the current month', () => {
-    expect(dailyAverage(31000, '2026-10', '2026-11-02')).toBe(1000);
-    expect(dailyAverage(30000, '2026-11', '2026-11-15')).toBe(2000);
-    expect(dailyAverage(2900, '2028-02', '2028-03-01')).toBe(100); // leap year
-    expect(dailyAverage(1000, '2026-12', '2026-11-15')).toBeNull();
-  });
-
-  it('compares the expenses with the month before', () => {
-    // october 168,940 against september 2,200
-    expect(expenseChange(entries, '2026-10')).toBe(7579);
-    expect(expenseChange(entries, '2026-11')).toBe(-100);
-    expect(expenseChange(entries, '2026-09')).toBeNull();
-  });
-
-  it('reads the typed amount in cents', () => {
-    expect(parseAmount('12.50')).toBe(1250);
-    expect(parseAmount('12,50')).toBe(1250);
+describe('amounts', () => {
+  it('reads what people actually type', () => {
+    expect(parseAmount('25,90')).toBe(2590);
+    expect(parseAmount('25.90')).toBe(2590);
+    expect(parseAmount('R$ 1.234,56')).toBe(123456);
     expect(parseAmount('1,234.56')).toBe(123456);
+    expect(parseAmount('1.500')).toBe(150000);
     expect(parseAmount('1,500')).toBe(150000);
-    expect(parseAmount('2,000,000')).toBe(200000000);
-    expect(parseAmount('$ 10')).toBe(1000);
-    expect(parseAmount('0.1')).toBe(10);
-    expect(parseAmount('abc')).toBe(null);
-    expect(parseAmount('0')).toBe(null);
-    expect(parseAmount('-5')).toBe(null);
+    expect(parseAmount('12')).toBe(1200);
+    expect(parseAmount('0')).toBeNull();
+    expect(parseAmount('abc')).toBeNull();
+    expect(parseAmount('1,2,3')).toBeNull();
+    expect(parseAmount('10.999')).toBe(1099900); // a thousands dot, not three decimals
   });
 
-  it('filters the month and sorts newest first', () => {
-    expect(inMonth(entries, '2026-10').map((e) => e.id)).toEqual([2, 1, 4, 3]);
-    expect(inMonth(entries, '2026-09').map((e) => e.id)).toEqual([5]);
+  it('writes reais', () => {
+    expect(formatMoney(123456).replace(/\s/g, ' ')).toBe('R$ 1.234,56');
+    expect(roughMoney(17433).replace(/\s/g, ' ')).toBe('R$ 174');
   });
+});
 
-  it('calculates the month balance', () => {
-    expect(summary(inMonth(entries, '2026-10'))).toEqual({ income: 300000, expenses: 168940, balance: 131060 });
-  });
-
-  it('adds up expenses by category', () => {
-    expect(expensesByCategory(inMonth(entries, '2026-10'))).toEqual([
-      { category: 'Housing', amount: 120000 },
-      { category: 'Food', amount: 48940 },
-    ]);
-  });
-
-  it('changes month across the year', () => {
-    expect(shiftMonth('2026-12', 1)).toBe('2027-01');
+describe('months and days', () => {
+  it('moves between months across years', () => {
     expect(shiftMonth('2026-01', -1)).toBe('2025-12');
+    expect(shiftMonth('2026-12', 1)).toBe('2027-01');
+    expect(monthName('2026-10')).toBe('October');
   });
 
-  it('writes the month name and the amount in dollars', () => {
-    expect(monthName('2026-10')).toBe('October 2026');
-    expect(monthName('2027-03')).toBe('March 2027');
-    expect(formatMoney(123456)).toBe('$1,234.56');
-    expect(formatMoney(5)).toBe('$0.05');
+  it('builds the calendar with Monday first', () => {
+    const weeks = calendarWeeks('2026-10'); // October 1st 2026 is a Thursday
+    expect(weeks[0]).toEqual([null, null, null, '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04']);
+    expect(weeks.flat().filter(Boolean)).toHaveLength(31);
+    expect(weeks.every((w) => w.length === 7)).toBe(true);
   });
 
-  it('builds the csv', () => {
-    const csv = toCsv([entries[1], { ...entries[0], description: 'Salary "out"' }]).split('\n');
-    expect(csv[0]).toBe('Date,Description,Category,Type,Amount');
-    expect(csv[1]).toBe('2026-10-06,"Groceries",Food,Expense,-450.90');
-    expect(csv[2]).toBe('2026-10-05,"Salary ""out""",Salary,Income,3000.00');
+  it('knows how far into the month today is', () => {
+    expect(monthProgress('2026-10', '2026-11-02')).toBe(1);
+    expect(monthProgress('2026-12', '2026-11-02')).toBe(0);
+    expect(monthProgress('2026-11', '2026-11-15')).toBe(0.5);
   });
 
-  it("sample data for the current month isn't in the future", () => {
-    const dates = sample('2026-10', '2026-10-08').map((e) => e.date).filter((d) => d.startsWith('2026-10'));
-    expect(dates.every((d) => d >= '2026-10-01' && d <= '2026-10-08')).toBe(true);
-    // in another month it uses the normal days
-    expect(sample('2026-09', '2026-10-08').at(-1).date).toBe('2026-09-22');
+  it('groups entries by day with what went out and came in', () => {
+    const groups = groupByDay([
+      { id: 3, day: '2026-10-08', kind: 'expense', amount_cents: 2000 },
+      { id: 2, day: '2026-10-08', kind: 'income', amount_cents: 5000 },
+      { id: 1, day: '2026-10-02', kind: 'expense', amount_cents: 100 },
+    ]);
+    expect(groups.map((g) => [g.day, g.spent, g.earned])).toEqual([['2026-10-08', 2000, 5000], ['2026-10-02', 100, 0]]);
   });
 
-  it('totals of the last months, oldest first', () => {
-    const totals = monthlyTotals(entries, '2026-10', 3);
-    expect(totals.map((t) => t.month)).toEqual(['2026-08', '2026-09', '2026-10']);
-    expect(totals[0]).toEqual({ month: '2026-08', income: 0, expenses: 0 });
-    expect(totals[1].expenses).toBe(2200);
-    expect(totals[2]).toEqual({ month: '2026-10', income: 300000, expenses: 168940 });
+  it('exports a CSV that Excel reads', () => {
+    const csv = toCsv([{ day: '2026-10-08', description: 'Pizza "big"', category_id: 1, kind: 'expense', amount_cents: 8900 }], () => 'Food');
+    expect(csv.split('\n')[1]).toBe('2026-10-08,"Pizza ""big""","Food",Expense,-89.00');
+  });
+});
+
+describe('the month in words', () => {
+  const base = {
+    month: '2026-10', income: 500000, expenses: 261280, balance: 238720, per_day: 8428,
+    previous: { income: 500000, expenses: 291280 }, categories: [],
+  };
+  const plain = (lines) => lines.join(' ').replace(/\s/g, ' ');
+
+  it('tells a past month with the comparison', () => {
+    expect(plain(story(base, '2026-11-06'))).toBe(
+      'In October you spent R$ 2.613, about R$ 84 a day. That\'s R$ 300 less than September. ' +
+      'Of the R$ 5.000 that came in, R$ 2.387 was kept.');
   });
 
-  it('filters by type and by text', () => {
-    expect(filterEntries(entries, { type: 'income' }).map((e) => e.id)).toEqual([1]);
-    expect(filterEntries(entries, { text: 'FOOD' }).map((e) => e.id)).toEqual([2, 4]); // category too
-    expect(filterEntries(entries, { type: 'expense', text: 'uber' }).map((e) => e.id)).toEqual([5]);
-    expect(filterEntries(entries).length).toBe(5);
+  it("doesn't compare a month still going with a whole one", () => {
+    const text = plain(story(base, '2026-10-10'));
+    expect(text).toContain('So far in October');
+    expect(text).toContain('September ended at R$ 2.913.');
+    expect(text).toContain('is still here');
   });
 
-  it('groups the list by day with the net amount', () => {
-    const groups = groupByDate(inMonth(entries, '2026-10'));
-    expect(groups.map((g) => g.date)).toEqual(['2026-10-06', '2026-10-05', '2026-10-03', '2026-10-01']);
-    expect(groups[1].net).toBe(300000);
-    expect(groups[3].net).toBe(-120000);
-    expect(dayLabel('2026-10-09')).toBe('Fri, Oct 9');
+  it('says when more went out than came in, and which budget slipped', () => {
+    const d = {
+      ...base, income: 100000, balance: -161280,
+      categories: [{ name: 'Food', spent: 90000, budget_cents: 80000 }, { name: 'Fun', spent: 1000, budget_cents: 20000 }],
+    };
+    const text = plain(story(d, '2026-11-06'));
+    expect(text).toContain('More went out than came in: R$ 1.613 short.');
+    expect(text).toContain('Food went R$ 100 over its budget.');
   });
 
-  it('sample data also fills the two months before, for the chart', () => {
-    const months = new Set(sample('2026-10', '2026-10-08').map((e) => e.date.slice(0, 7)));
-    expect([...months].sort()).toEqual(['2026-08', '2026-09', '2026-10']);
+  it('an empty month is just that', () => {
+    const d = { ...base, income: 0, expenses: 0, balance: 0 };
+    expect(story(d, '2026-10-02')).toEqual(['Nothing written down for October yet.']);
+    expect(story({ ...d, month: '2026-12' }, '2026-10-02')).toEqual(["December hasn't started yet."]);
   });
 });

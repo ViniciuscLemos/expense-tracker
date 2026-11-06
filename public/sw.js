@@ -1,7 +1,7 @@
 // Service worker so the app opens even without internet.
 // It always tries the network first (so nobody gets stuck on an old version)
 // and keeps a copy; with no network, it uses the copy.
-const CACHE = 'expense-tracker-v1';
+const CACHE = 'expense-tracker-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -15,7 +15,9 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
+  const url = new URL(request.url);
+  // the API is never kept: it's someone's money, and it would stay in the cache after logging out
+  if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
 
   event.respondWith(
     fetch(request)
