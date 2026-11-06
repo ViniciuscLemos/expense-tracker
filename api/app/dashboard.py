@@ -15,7 +15,7 @@ def totals(conn, user_id: int, start, end) -> dict:
 
 
 @router.get("/dashboard")
-def dashboard(month: str = Query(pattern=r"^\d{4}-\d{2}$"), user=Depends(current_user), conn=Depends(db)):
+def dashboard(month: str = Query(pattern=r"^\d{4}-\d{2}$"), user=Depends(current_user), conn=Depends(db, scope="function")):
     """Everything the month's page shows, in one request: the totals and last month's, the
     categories against their budgets, every day of the month and the last six months."""
     uid = user["id"]

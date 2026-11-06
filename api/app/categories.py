@@ -36,14 +36,14 @@ def owned(conn, user_id: int, category_id: int) -> dict:
 
 
 @router.get("")
-def list_categories(user=Depends(current_user), conn=Depends(db)):
+def list_categories(user=Depends(current_user), conn=Depends(db, scope="function")):
     return conn.execute(
         f"SELECT {FIELDS}, (SELECT count(*) FROM entries e WHERE e.category_id = c.id) AS entries "
         "FROM categories c WHERE user_id = %s ORDER BY kind, archived, lower(name)", (user["id"],)).fetchall()
 
 
 @router.post("", status_code=201)
-def add_category(body: NewCategory, user=Depends(current_user), conn=Depends(db)):
+def add_category(body: NewCategory, user=Depends(current_user), conn=Depends(db, scope="function")):
     if body.kind == "income" and body.budget_cents:
         raise HTTPException(422, "Budgets are for expenses.")
     try:
@@ -55,7 +55,7 @@ def add_category(body: NewCategory, user=Depends(current_user), conn=Depends(db)
 
 
 @router.patch("/{category_id}")
-def change_category(category_id: int, body: CategoryChange, user=Depends(current_user), conn=Depends(db)):
+def change_category(category_id: int, body: CategoryChange, user=Depends(current_user), conn=Depends(db, scope="function")):
     category = owned(conn, user["id"], category_id)
     sent = body.model_dump(exclude_unset=True)
     if "name" in sent:
@@ -73,7 +73,7 @@ def change_category(category_id: int, body: CategoryChange, user=Depends(current
 
 
 @router.delete("/{category_id}", status_code=204)
-def delete_category(category_id: int, move_to: int | None = None, user=Depends(current_user), conn=Depends(db)):
+def delete_category(category_id: int, move_to: int | None = None, user=Depends(current_user), conn=Depends(db, scope="function")):
     """A category with entries can't just disappear. Either its entries move to another
     category of the same kind (move_to), or the answer says how many are in the way."""
     category = owned(conn, user["id"], category_id)

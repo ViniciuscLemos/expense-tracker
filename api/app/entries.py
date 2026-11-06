@@ -61,7 +61,7 @@ def list_entries(
     q: str | None = Query(default=None, max_length=60),
     after: str | None = None,
     user=Depends(current_user),
-    conn=Depends(db),
+    conn=Depends(db, scope="function"),
 ):
     """Newest first, 50 at a time. `after` is the `next` of the page before: the next page
     starts right after that (day, id), so it doesn't slow down or skip rows like OFFSET would
@@ -99,7 +99,7 @@ def get_entry(conn, user_id: int, entry_id: int) -> dict:
 
 
 @router.post("", status_code=201)
-def add_entry(body: NewEntry, user=Depends(current_user), conn=Depends(db)):
+def add_entry(body: NewEntry, user=Depends(current_user), conn=Depends(db, scope="function")):
     check_category(conn, user["id"], body.category_id, body.kind)
     return conn.execute(
         "INSERT INTO entries (user_id, kind, category_id, amount_cents, description, day) "
@@ -108,7 +108,7 @@ def add_entry(body: NewEntry, user=Depends(current_user), conn=Depends(db)):
 
 
 @router.patch("/{entry_id}")
-def change_entry(entry_id: int, body: EntryChange, user=Depends(current_user), conn=Depends(db)):
+def change_entry(entry_id: int, body: EntryChange, user=Depends(current_user), conn=Depends(db, scope="function")):
     entry = get_entry(conn, user["id"], entry_id)
     sent = body.model_dump(exclude_unset=True, exclude_none=True)
     if "description" in sent:
@@ -126,7 +126,7 @@ def change_entry(entry_id: int, body: EntryChange, user=Depends(current_user), c
 
 
 @router.delete("/{entry_id}", status_code=204)
-def delete_entry(entry_id: int, user=Depends(current_user), conn=Depends(db)):
+def delete_entry(entry_id: int, user=Depends(current_user), conn=Depends(db, scope="function")):
     get_entry(conn, user["id"], entry_id)
     conn.execute("DELETE FROM entries WHERE id = %s", (entry_id,))
 
@@ -146,7 +146,7 @@ class Backup(BaseModel):
 
 
 @router.post("/import")
-def import_backup(body: Backup, user=Depends(current_user), conn=Depends(db)):
+def import_backup(body: Backup, user=Depends(current_user), conn=Depends(db, scope="function")):
     """Takes the backup file of the version that saves in the browser. Categories are
     matched by name, and the ones that don't exist yet are created."""
     known = {(row["kind"], row["name"].lower()): row["id"] for row in

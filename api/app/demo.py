@@ -34,7 +34,7 @@ MONTH = [
     (27, "expense", "Pizza on Friday", "Food", 8900),
 ]
 # the months before get the same entries a bit cheaper or pricier, so the six months differ
-FACTORS = [1.08, 0.94, 1.15, 0.9, 1.02]
+FACTORS = [1.08, 0.94, 1.15, 0.9, 1.02, 0.97]
 BUDGETS = {"Food": 90000, "Fun": 25000, "Shopping": 40000, "Transport": 15000}
 
 

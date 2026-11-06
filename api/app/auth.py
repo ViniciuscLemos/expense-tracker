@@ -82,7 +82,7 @@ def create_user(conn, name: str, email: str, password: str) -> int:
 
 
 @router.post("/signup", status_code=201)
-def signup(body: Signup, request: Request, response: Response, conn=Depends(db)):
+def signup(body: Signup, request: Request, response: Response, conn=Depends(db, scope="function")):
     if not EMAIL.match(body.email.strip()):
         raise HTTPException(422, "That email doesn't look right.")
     if conn.execute("SELECT 1 FROM users WHERE lower(email) = lower(%s)", (body.email.strip(),)).fetchone():
@@ -93,7 +93,7 @@ def signup(body: Signup, request: Request, response: Response, conn=Depends(db))
 
 
 @router.post("/login")
-def login(body: Login, request: Request, response: Response, conn=Depends(db)):
+def login(body: Login, request: Request, response: Response, conn=Depends(db, scope="function")):
     email = body.email.strip().lower()
     attempts: Attempts = request.app.state.attempts
     wait = attempts.blocked(email)
@@ -122,7 +122,7 @@ def app_dummy_hash() -> bytes:
 
 
 @router.post("/logout", status_code=204)
-def logout(request: Request, response: Response, conn=Depends(db)):
+def logout(request: Request, response: Response, conn=Depends(db, scope="function")):
     token = request.cookies.get(COOKIE)
     if token:
         conn.execute("DELETE FROM sessions WHERE token_hash = %s", (token_hash(token),))
