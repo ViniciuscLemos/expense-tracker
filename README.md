@@ -6,6 +6,8 @@ Write down what you spend and what comes in, and at the end of the month read ho
 
 React on the page, a Python API (FastAPI) and Postgres behind it.
 
+**Try it:** [expense-tracker-qm7l.onrender.com](https://expense-tracker-qm7l.onrender.com). The *Open Marina's notebook* button logs in as a made-up person with six months written down. It's a free instance, so the first visit after a while takes up to a minute.
+
 ![October in the demo account: the month told in a few sentences, the entries by day, the budgets, a calendar of the month](docs/screenshot.png)
 
 It started as a React app that saved everything in the browser. That's fine until you want the same numbers on the phone and on the computer, so now there are accounts and a server, and the page was redone from scratch on top of them.

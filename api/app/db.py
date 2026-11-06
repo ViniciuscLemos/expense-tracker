@@ -3,7 +3,6 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 from psycopg.conninfo import make_conninfo
-
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
