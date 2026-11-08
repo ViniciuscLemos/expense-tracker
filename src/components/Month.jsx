@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, query } from '../lib/api';
 import { formatMoney, monthName, monthOf, shiftMonth, toCsv, today, yearOf } from '../lib/finance';
 import { story } from '../lib/story';
+import Biggest from './Biggest';
 import Budgets from './Budgets';
 import Calendar from './Calendar';
 import EntryLine from './EntryLine';
@@ -215,6 +216,7 @@ export default function Month({ categories, onCategories }) {
         {dash && (
           <aside className="margin">
             <Budgets categories={dash.categories} month={month} todayIso={todayIso} onSetUp={onCategories} />
+            <Biggest items={dash.biggest} total={dash.expenses} onPick={pickDay} />
             <Calendar month={month} days={dash.days} todayIso={todayIso} onPick={pickDay} />
             <SixMonths months={dash.months} current={month} onPick={go} />
           </aside>

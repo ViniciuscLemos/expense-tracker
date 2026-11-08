@@ -551,3 +551,14 @@ footer a { color: inherit; }
   .recurring-row { grid-template-columns: minmax(0, 1fr) auto; }
   .recurring-row .count { grid-column: 1; font-size: 12px; }
 }
+
+/* the biggest ones */
+.biggest ol { list-style: none; margin: 0; padding: 0; }
+.biggest-row {
+  width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  background: none; border: 0; border-bottom: 1px solid var(--rule-faint); padding: 7px 0; text-align: left; cursor: pointer;
+}
+.biggest-row:hover .what { text-decoration: underline; text-underline-offset: 3px; }
+.biggest-row .what { display: flex; flex-direction: column; font-size: 15px; }
+.biggest-row small { font-size: 12px; color: var(--ink-faint); display: inline-flex; align-items: center; gap: 6px; }
+.biggest-row small i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
