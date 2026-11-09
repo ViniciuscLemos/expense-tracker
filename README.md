@@ -22,11 +22,18 @@ I wanted it to feel like the notebook people actually use for this, not like a d
 - **The entries are grouped by day,** with what went out and came in on each day. You can edit an entry in place. Deleting crosses it out with an "undo" for a few seconds, instead of asking "are you sure?" first.
 - **Budgets per category.** In the month that's still going there's a small mark on each bar for where the spending should be by today. 60% of the food budget gone on the 10th looks wrong, and on the 25th it doesn't.
 - **A calendar of the month,** each day darker the more went out. Clicking a day jumps to it in the list. The darkest shade goes to the second biggest day, otherwise rent day would make every other day look empty.
+- **The biggest ones.** The three largest expenses of the month in the margin, and how much of everything that went out they were together. Usually it's rent and two surprises. Clicking one jumps to its day.
 - **The last six months,** and clicking one opens it.
 - You can filter by kind and category, search, and export the month to CSV, which opens straight in Excel.
+- **A search can look in every month,** not only the one open: "when did I last pay the dentist?" With that on, each day in the list also says which month it's from. A search that finds nothing in this month offers to look in the others.
 - Categories can be renamed, recolored, archived or deleted. A category that still has entries has to move them to another one before it can go.
 - If you used the first version, its backup file can be brought in from the categories page. Bringing the same file twice doesn't repeat anything.
 - There's a dark mode, it works on the phone, and it can be installed as an app.
+
+<p>
+  <img src="docs/search-every-month.png" alt="Searching 'rent' in every month: the rent of November, October, September and August, each day with its month" width="520">
+  <img src="docs/biggest.png" alt="The biggest ones: rent, groceries and electricity, together 86% of what went out" width="300">
+</p>
 
 <p>
   <img src="docs/screenshot-mobile.png" alt="The same month on the phone" width="260">
