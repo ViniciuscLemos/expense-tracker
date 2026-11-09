@@ -116,3 +116,16 @@ test("the demo opens Marina's six months", async ({ page }) => {
   await page.getByRole('button', { name: 'log out' }).click();
   await expect(page.getByRole('heading', { name: 'Log in' })).toBeVisible();
 });
+
+test('a search can look in every month', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: "Open Marina's notebook" }).click();
+  await page.getByLabel('Search entries').fill('rent');
+  const scope = page.locator('.ledger-tools .scope');
+  await expect(scope).toHaveText(/^only /);
+  await expect(page.locator('.day-month')).toHaveCount(0);
+  await scope.click();
+  await expect(scope).toHaveText('every month');
+  // one rent a month, and each day says which month it's in
+  await expect.poll(() => page.locator('.day-month').count()).toBeGreaterThan(4);
+});

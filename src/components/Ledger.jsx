@@ -1,7 +1,7 @@
-import { dayNumber, formatMoney, groupByDay, weekday } from '../lib/finance';
+import { dayNumber, formatMoney, groupByDay, monthName, monthOf, weekday, yearOf } from '../lib/finance';
 import EntryLine from './EntryLine';
 
-export default function Ledger({ entries, categories, editing, onEdit, onCancel, onSave, onDelete }) {
+export default function Ledger({ entries, categories, withMonth, editing, onEdit, onCancel, onSave, onDelete }) {
   const byId = Object.fromEntries(categories.map((c) => [c.id, c]));
 
   return (
@@ -10,7 +10,11 @@ export default function Ledger({ entries, categories, editing, onEdit, onCancel,
         <li key={group.day} id={`day-${group.day}`} className="day">
           <h3>
             <span className="day-number">{dayNumber(group.day)}</span>
-            <span className="day-name">{weekday(group.day)}</span>
+            <span className="day-name">
+              {weekday(group.day)}
+              {/* a search across months has to say which month each day is in */}
+              {withMonth && <span className="day-month"> · {monthName(monthOf(group.day))} {yearOf(monthOf(group.day))}</span>}
+            </span>
             <span className="day-total">
               {group.earned > 0 && <span className="in">+{formatMoney(group.earned)}</span>}
               {group.spent > 0 && <span>{formatMoney(group.spent)}</span>}

@@ -16,6 +16,10 @@ export default function Month({ categories, onCategories }) {
   const [dash, setDash] = useState(null);
   const [list, setList] = useState({ entries: [], next: null, loading: true });
   const [filter, setFilter] = useState({ kind: '', q: '', category_id: '' });
+  // a search can look at this month or at every month ("when did I last pay the dentist?")
+  const [everywhere, setEverywhere] = useState(false);
+  const wide = everywhere && !!filter.q.trim();
+  const scope = wide ? {} : { month };
   const [editing, setEditing] = useState(null);
   const [deleted, setDeleted] = useState(null);
   const [problem, setProblem] = useState('');
@@ -40,12 +44,12 @@ export default function Month({ categories, onCategories }) {
   const loadList = useCallback(async () => {
     const turn = ++listTurn.current;
     try {
-      const page = await api(`/entries${query({ month, ...filter })}`);
+      const page = await api(`/entries${query({ ...scope, ...filter })}`);
       if (turn === listTurn.current) setList({ ...page, loading: false });
     } catch (e) {
       setProblem(e.message);
     }
-  }, [month, filter]);
+  }, [month, filter, wide]);
 
   useEffect(() => { loadDash(); }, [loadDash]);
 
@@ -61,7 +65,7 @@ export default function Month({ categories, onCategories }) {
 
   async function more() {
     const turn = listTurn.current;
-    const page = await api(`/entries${query({ month, ...filter, after: list.next })}`);
+    const page = await api(`/entries${query({ ...scope, ...filter, after: list.next })}`);
     if (turn === listTurn.current) setList((l) => ({ entries: [...l.entries, ...page.entries], next: page.next, loading: false }));
   }
 
@@ -185,6 +189,11 @@ export default function Month({ categories, onCategories }) {
             </select>
             <input type="search" placeholder="search" aria-label="Search entries" value={filter.q}
               onChange={(e) => setFilter((f) => ({ ...f, q: e.target.value }))} />
+            {filter.q.trim() && (
+              <button type="button" className="link scope" aria-pressed={everywhere} onClick={() => setEverywhere((v) => !v)}>
+                {everywhere ? 'every month' : `only ${monthName(month)}`}
+              </button>
+            )}
             {dash && (dash.income > 0 || dash.expenses > 0) && (
               <button type="button" className="link" onClick={exportCsv}>CSV</button>
             )}
@@ -194,6 +203,7 @@ export default function Month({ categories, onCategories }) {
             <Ledger
               entries={list.entries}
               categories={categories}
+              withMonth={wide}
               editing={editing}
               onEdit={setEditing}
               onCancel={() => setEditing(null)}
@@ -203,7 +213,12 @@ export default function Month({ categories, onCategories }) {
           ) : !list.loading && (
             <div className="blank-page">
               {filtering ? (
-                <p>Nothing matches. <button type="button" className="link" onClick={() => setFilter({ kind: '', q: '', category_id: '' })}>Clear the filter</button></p>
+                <p>
+                  Nothing matches{wide ? ' in any month' : ` in ${monthName(month)}`}.{' '}
+                  {filter.q.trim() && !wide
+                    ? <button type="button" className="link" onClick={() => setEverywhere(true)}>Look in every month</button>
+                    : <button type="button" className="link" onClick={() => setFilter({ kind: '', q: '', category_id: '' })}>Clear the filter</button>}
+                </p>
               ) : (
                 <p>A blank page for {monthName(month)}. Write the first thing down up there.</p>
               )}
