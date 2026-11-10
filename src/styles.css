@@ -566,3 +566,31 @@ footer a { color: inherit; }
 .ledger-tools .scope { font-size: 13px; white-space: nowrap; }
 .ledger-tools .scope[aria-pressed='true'] { color: var(--ink); font-weight: 600; }
 .day-month { color: var(--ink-faint, inherit); }
+
+/* ---------- the year ---------- */
+
+.year-spread { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 56px; margin-top: 28px; }
+.year-spread h2 { font-size: 19px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); margin-bottom: 16px; }
+.twelve { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; }
+.twelve button { background: none; border: 0; padding: 0; display: flex; flex-direction: column; align-items: stretch; gap: 6px; cursor: pointer; }
+.twelve button:disabled { cursor: default; }
+.twelve .six-plot { height: 160px; }
+.twelve .six-out { width: 14px; }
+.twelve button.priciest .six-out { background: var(--pen); opacity: 1; }
+.twelve button:not(:disabled):hover .six-out { opacity: 0.85; }
+.twelve button.empty .six-label { opacity: 0.5; }
+.year-cat-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.year-cat-list li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; }
+.year-cat-list .name { display: flex; align-items: center; gap: 8px; }
+.year-cat-list .name i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.year-cat-list .amount { font-family: var(--mono); font-size: 14px; }
+.year-cat-list .share { grid-column: 1 / -1; height: 5px; background: var(--rule); border-radius: 3px; overflow: hidden; }
+.year-cat-list .share span { display: block; height: 100%; border-radius: 3px; opacity: 0.85; }
+.year-cat-list .note { grid-column: 1 / -1; font-size: 13px; color: var(--ink-faint); }
+@media (max-width: 860px) {
+  .year-spread { grid-template-columns: 1fr; gap: 36px; }
+  .twelve { gap: 3px; }
+  .twelve .six-plot { height: 110px; }
+  .twelve .six-out { width: 9px; }
+  .twelve .six-label { font-size: 10px; }
+}

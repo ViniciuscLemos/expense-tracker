@@ -3,14 +3,21 @@ import { api } from './lib/api';
 import Categories from './components/Categories';
 import Login from './components/Login';
 import Month from './components/Month';
+import Year from './components/Year';
 
-const pageFromHash = () => (window.location.hash === '#categories' ? 'categories' : 'month');
+const PAGES = ['categories', 'year'];
+const pageFromHash = () => {
+  const page = window.location.hash.slice(1);
+  return PAGES.includes(page) ? page : 'month';
+};
 
 export default function App() {
   // undefined while asking the server who's logged in, null when nobody is
   const [user, setUser] = useState(undefined);
   const [categories, setCategories] = useState([]);
   const [page, setPage] = useState(pageFromHash);
+  // the month to open when coming from the year page
+  const [startMonth, setStartMonth] = useState(null);
 
   useEffect(() => {
     api('/me').then(setUser).catch(() => setUser(null));
@@ -44,15 +51,16 @@ export default function App() {
       <header className="top">
         <p className="wordmark">{user.name}'s expenses<span>.</span></p>
         <nav aria-label="Pages">
-          <button type="button" className="link" aria-current={page === 'month' ? 'page' : undefined} onClick={() => open('month')}>month</button>
+          <button type="button" className="link" aria-current={page === 'month' ? 'page' : undefined} onClick={() => { setStartMonth(null); open('month'); }}>month</button>
+          <button type="button" className="link" aria-current={page === 'year' ? 'page' : undefined} onClick={() => open('year')}>year</button>
           <button type="button" className="link" aria-current={page === 'categories' ? 'page' : undefined} onClick={() => open('categories')}>categories</button>
           <button type="button" className="link" onClick={logout}>log out</button>
         </nav>
       </header>
 
-      {page === 'month'
-        ? <Month categories={categories} onCategories={() => open('categories')} />
-        : <Categories categories={categories} onChanged={loadCategories} />}
+      {page === 'month' && <Month key={startMonth || 'now'} categories={categories} startMonth={startMonth} onCategories={() => open('categories')} />}
+      {page === 'year' && <Year onMonth={(m) => { setStartMonth(m); open('month'); }} />}
+      {page === 'categories' && <Categories categories={categories} onChanged={loadCategories} />}
 
       <footer>
         made by <a href="https://github.com/ViniciuscLemos" target="_blank" rel="noreferrer">Vinicius Lemos</a>

@@ -129,3 +129,18 @@ test('a search can look in every month', async ({ page }) => {
   // one rent a month, and each day says which month it's in
   await expect.poll(() => page.locator('.day-month').count()).toBeGreaterThan(4);
 });
+
+test('the year on one page, and a month opens from it', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: "Open Marina's notebook" }).click();
+  await page.getByRole('button', { name: 'year', exact: true }).click();
+  await expect(page.locator('.year .story')).toContainText('came in');
+  await expect(page.locator('.twelve button')).toHaveCount(12);
+  await expect(page.locator('.year-cat-list li').first()).toContainText('Housing');
+  // the first month with something in it opens on the month page
+  const first = page.locator('.twelve button:not(:disabled)').first();
+  const name = (await first.getAttribute('aria-label')).split(':')[0];
+  await first.click();
+  await expect(page.locator('.month-nav h1')).toContainText(name);
+  await expect(page.locator('.ledger')).toBeVisible();
+});

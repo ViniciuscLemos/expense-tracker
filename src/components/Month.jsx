@@ -11,8 +11,8 @@ import SixMonths from './SixMonths';
 
 const SHOW = [['', 'everything'], ['expense', 'spent'], ['income', 'came in']];
 
-export default function Month({ categories, onCategories }) {
-  const [month, setMonth] = useState(monthOf(today()));
+export default function Month({ categories, startMonth, onCategories }) {
+  const [month, setMonth] = useState(startMonth || monthOf(today()));
   const [dash, setDash] = useState(null);
   const [list, setList] = useState({ entries: [], next: null, loading: true });
   const [filter, setFilter] = useState({ kind: '', q: '', category_id: '' });
