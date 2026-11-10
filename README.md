@@ -24,11 +24,14 @@ I wanted it to feel like the notebook people actually use for this, not like a d
 - **A calendar of the month,** each day darker the more went out. Clicking a day jumps to it in the list. The darkest shade goes to the second biggest day, otherwise rent day would make every other day look empty.
 - **The biggest ones.** The three largest expenses of the month in the margin, and how much of everything that went out they were together. Usually it's rent and two surprises. Clicking one jumps to its day.
 - **The last six months,** and clicking one opens it.
+- **The year on one page.** How much came in and went out, the share of it that was kept, the most expensive and the lightest month (only whole months: November isn't light, it just isn't over), the twelve months side by side and where the money went, each category with what it costs in a month where it shows up. Clicking a month opens it.
 - You can filter by kind and category, search, and export the month to CSV, which opens straight in Excel.
 - **A search can look in every month,** not only the one open: "when did I last pay the dentist?" With that on, each day in the list also says which month it's from. A search that finds nothing in this month offers to look in the others.
 - Categories can be renamed, recolored, archived or deleted. A category that still has entries has to move them to another one before it can go.
 - If you used the first version, its backup file can be brought in from the categories page. Bringing the same file twice doesn't repeat anything.
 - There's a dark mode, it works on the phone, and it can be installed as an app.
+
+<img src="docs/year.png" alt="The year 2026: a few sentences about it, what came in, went out and was kept, the twelve months as bars, and the categories with their share of the year" width="760">
 
 <p>
   <img src="docs/search-every-month.png" alt="Searching 'rent' in every month: the rent of November, October, September and August, each day with its month" width="520">
@@ -48,6 +51,7 @@ It lives in `api/`, written in FastAPI with psycopg, and the SQL is written by h
 - Anything that changes data needs an `X-Requested-With` header. A form on another site can't send it, and there's no CORS, so that covers CSRF.
 - The database itself refuses an entry in a category that belongs to another person or is of the other kind. That's a composite foreign key, `(category_id, user_id, kind)`, so it doesn't depend on the Python code remembering to check.
 - The list comes 50 entries at a time and pages by `(day, id)` instead of `OFFSET`. Page 40 is as fast as page 1, and nothing gets skipped when entries are added in between.
+- `GET /api/year/2026` is the year page in one request: twelve months with `generate_series`, so the empty ones are zeros, and the categories with how many months each shows up in.
 - `GET /api/dashboard?month=2026-10` brings everything the page needs in one request:
   - the totals, and last month's;
   - each category against its budget;
