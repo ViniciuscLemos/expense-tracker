@@ -62,3 +62,30 @@ def test_the_demo_account_has_six_months_and_comes_back_whole(app):
     assert count(again) == whole
     months = again.get("/api/dashboard", params={"month": newest["day"][:7]}).json()["months"]
     assert len(months) == 6 and all(m["expenses"] > 0 for m in months)
+
+
+def test_the_year_on_one_page(ana):
+    add(ana, "Salary", 400000, "2026-01-05", cat="Salary", kind="income")
+    add(ana, "Salary", 400000, "2026-02-05", cat="Salary", kind="income")
+    add(ana, "Rent", 150000, "2026-01-02", cat="Housing")
+    add(ana, "Rent", 150000, "2026-02-02", cat="Housing")
+    add(ana, "Groceries", 30000, "2026-02-08")
+    add(ana, "Last year", 99900, "2025-12-31")
+
+    y = ana.get("/api/year/2026").json()
+    assert (y["income"], y["expenses"], y["balance"]) == (800000, 330000, 470000)
+    # 470000 of 800000 kept
+    assert y["kept_percent"] == 59
+    # all twelve months, the empty ones as zeros
+    assert [m["month"] for m in y["months"]][:3] == ["2026-01", "2026-02", "2026-03"]
+    assert len(y["months"]) == 12 and y["months"][5] == {"month": "2026-06", "income": 0, "expenses": 0}
+    assert y["months_used"] == 2
+    assert (y["priciest"], y["cheapest"]) == ("2026-02", "2026-01")
+    housing = y["categories"][0]
+    assert (housing["name"], housing["spent"], housing["entries"], housing["months"]) == ("Housing", 300000, 2, 2)
+
+
+def test_an_empty_year_and_only_your_own(ana, app):
+    y = ana.get("/api/year/2019").json()
+    assert (y["income"], y["kept_percent"], y["priciest"], y["months_used"]) == (0, None, None, 0)
+    assert ana.get("/api/year/1999").status_code == 422
