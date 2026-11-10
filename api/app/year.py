@@ -3,6 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, Path
 
 from .deps import current_user, db
+from .months import today
 from .recurring import post_due
 
 router = APIRouter(prefix="/api")
@@ -36,7 +37,9 @@ def year(year: int = Path(ge=2000, le=2100), user=Depends(current_user), conn=De
     expenses = sum(m["expenses"] for m in months)
     used = [m for m in months if m["income"] or m["expenses"]]
     priciest = max(used, key=lambda m: m["expenses"], default=None)
-    cheapest = min((m for m in used if m["expenses"]), key=lambda m: m["expenses"], default=None)
+    # the month still going isn't the lightest, it just isn't over: only whole months compete
+    running = today().strftime("%Y-%m")
+    cheapest = min((m for m in used if m["expenses"] and m["month"] < running), key=lambda m: m["expenses"], default=None)
 
     return {
         "year": year,
