@@ -594,3 +594,41 @@ footer a { color: inherit; }
   .twelve .six-out { width: 9px; }
   .twelve .six-label { font-size: 10px; }
 }
+
+/* ---------- phones ---------- */
+
+/* the month name and both arrows on one line, down to "September 2026" on a 360px screen */
+@media (max-width: 480px) {
+  .month-nav { gap: 10px; }
+  .month-nav h1 { font-size: 30px; }
+  .month-nav .back-today { flex-basis: 100%; margin-left: 0; text-align: left; }
+}
+
+@media (pointer: coarse) {
+  /* iOS zooms into any field under 16px when it gets the focus */
+  input, select, textarea, .entry-line label input, .entry-line label select,
+  .ledger-tools select, .ledger-tools input, .budget-field input { font-size: 16px; }
+  /* small text buttons keep their look but get a finger-sized hit area */
+  .link, .kind button, .show button, .top nav .link {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin-top: -10px;
+    margin-bottom: -10px;
+  }
+  .top nav, .show, .row-actions { gap: 20px; }
+  .month-nav > button:not(.link) { width: 42px; height: 42px; }
+  input[type='checkbox'] { width: 20px; height: 20px; }
+  input[type='color'] { width: 30px; height: 30px; }
+  .new-category input { font-size: 16px; }
+}
+
+/* with 16px text the date field is wider than half a phone: the columns may shrink below it */
+@media (max-width: 640px) {
+  .entry-line { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .entry-line label input:not([type='checkbox']), .entry-line label select { width: 100%; min-width: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
