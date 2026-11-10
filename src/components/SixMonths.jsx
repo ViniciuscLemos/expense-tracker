@@ -15,7 +15,7 @@ export default function SixMonths({ months, current, onPick }) {
             type="button"
             className={m.month === current ? 'here' : ''}
             onClick={() => onPick(m.month)}
-            aria-label={`${monthName(m.month)}: ${formatMoney(m.expenses)} out, ${formatMoney(m.income)} in`}
+            aria-label={`${monthName(m.month, 'short')}: ${formatMoney(m.expenses)} out, ${formatMoney(m.income)} in`}
             title={`${formatMoney(m.expenses)} out · ${formatMoney(m.income)} in`}
           >
             <span className="six-plot">

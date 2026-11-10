@@ -54,7 +54,7 @@ export default function Year({ onMonth }) {
                 return (
                   <button key={m.month} type="button" onClick={() => onMonth(m.month)} disabled={empty}
                     className={[m.month === data.priciest && 'priciest', empty && 'empty'].filter(Boolean).join(' ')}
-                    aria-label={`${monthName(m.month)}: ${formatMoney(m.expenses)} out, ${formatMoney(m.income)} in`}
+                    aria-label={`${monthName(m.month, 'short')}: ${formatMoney(m.expenses)} out, ${formatMoney(m.income)} in`}
                     title={`${formatMoney(m.expenses)} out · ${formatMoney(m.income)} in`}>
                     <span className="six-plot">
                       <span className="six-in" style={{ height: `${(m.income / top) * 100}%` }} />
@@ -77,7 +77,7 @@ export default function Year({ onMonth }) {
                   <li key={c.id}>
                     <span className="name"><i style={{ background: c.color }} aria-hidden="true" />{c.name}</span>
                     <span className="amount">{formatMoney(c.spent)}</span>
-                    <span className="share" aria-label={`${share}% of what went out`}>
+                    <span className="share" aria-hidden="true">
                       <span style={{ width: `${share}%`, background: c.color }} />
                     </span>
                     <span className="note">{share}% · about {roughMoney(Math.round(c.spent / c.months))} in the {c.months === 1 ? 'one month' : `${c.months} months`} it shows up</span>

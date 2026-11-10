@@ -27,6 +27,10 @@ for (const scheme of ['light', 'dark']) {
       await expect(page.locator('.calendar')).toBeVisible();
       expect(await audit(page)).toEqual([]);
 
+      await page.getByRole('button', { name: 'year', exact: true }).click();
+      await expect(page.locator('.twelve')).toBeVisible();
+      expect(await audit(page)).toEqual([]);
+
       await page.getByRole('button', { name: 'categories' }).click();
       await expect(page.getByRole('heading', { name: 'Categories' })).toBeVisible();
       expect(await audit(page)).toEqual([]);

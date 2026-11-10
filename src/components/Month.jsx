@@ -170,7 +170,8 @@ export default function Month({ categories, startMonth, onCategories }) {
       )}
 
       <div className="spread">
-        <section className="ledger" aria-label="Entries">
+        <section className="ledger" aria-labelledby="entries-title">
+          <h2 id="entries-title" className="sr-only">Entries</h2>
           {categories.length > 0 && (
             <EntryLine key={`new-${month}`} categories={categories} defaultDay={defaultDay} onSave={add} />
           )}
