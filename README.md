@@ -43,6 +43,10 @@ I wanted it to feel like the notebook people actually use for this, not like a d
   <img src="docs/screenshot-dark.png" alt="The month in dark mode" width="560">
 </p>
 
+### On a phone
+
+The month name and its arrows stay on one line down to 360px, fields are 16px so iOS doesn't zoom in, and the small text buttons (edit, delete, the filters) have a finger-sized hit area. The end to end tests run on a phone too, and the axe check covers the month, the year and the categories in light and dark mode.
+
 ## The API
 
 It lives in `api/`, written in FastAPI with psycopg, and the SQL is written by hand.
