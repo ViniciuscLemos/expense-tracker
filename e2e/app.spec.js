@@ -144,3 +144,31 @@ test('the year on one page, and a month opens from it', async ({ page }) => {
   await expect(page.locator('.month-nav h1')).toContainText(name);
   await expect(page.locator('.ledger')).toBeVisible();
 });
+
+test('a goal: start it, put money in, take some out', async ({ page }) => {
+  await signUp(page);
+  await page.getByRole('button', { name: 'goals', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Goals' })).toBeVisible();
+  await page.getByLabel('For').fill('Bike');
+  await page.getByLabel('How much, R$').fill('1.200,00');
+  await page.getByRole('button', { name: 'Start it' }).click();
+
+  const goal = page.locator('.goal', { hasText: 'Bike' });
+  await expect(goal.locator('.goal-line')).toContainText('Nothing in it yet');
+  await goal.getByLabel('Amount for Bike').fill('300');
+  await goal.getByRole('button', { name: 'Put in' }).click();
+  await expect(goal.locator('.goal-figures')).toContainText('R$ 300,00');
+  await expect(goal.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '25');
+
+  // more than is in it is refused
+  await goal.getByLabel('Amount for Bike').fill('500');
+  await goal.getByRole('button', { name: 'take out' }).click();
+  await expect(goal.getByRole('alert')).toContainText("isn't that much");
+  await goal.getByLabel('Amount for Bike').fill('100');
+  await goal.getByRole('button', { name: 'take out' }).click();
+  await expect(goal.locator('.goal-figures')).toContainText('R$ 200,00');
+
+  await goal.getByRole('button', { name: 'delete' }).click();
+  await goal.getByRole('button', { name: 'yes, delete' }).click();
+  await expect(page.locator('.goal')).toHaveCount(0);
+});
