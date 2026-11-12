@@ -667,3 +667,12 @@ footer a { color: inherit; }
 .bank-preview { margin-top: 12px; padding: 12px 14px; border-left: 3px solid var(--pen); background: var(--paper-2); }
 .bank-preview p { margin: 0 0 8px; }
 .bank-actions { display: flex; gap: 18px; align-items: center; margin-top: 10px; }
+
+/* last month's leftover, offered to the goals */
+.leftover { margin: 26px 0 0; padding: 14px 16px; background: var(--paper-2); border-left: 3px solid var(--in); }
+.leftover p { margin: 0 0 10px; font-family: var(--serif); font-size: 17px; }
+.leftover.done { font-family: var(--serif); color: var(--ink-soft); }
+.leftover-fields { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.leftover-fields label { display: flex; gap: 6px; align-items: baseline; font-family: var(--mono); color: var(--ink-soft); }
+.leftover-fields input { width: 120px; font-family: var(--mono); text-align: right; color: var(--ink); }
+.leftover-fields select { color: var(--ink); font-family: var(--sans); }

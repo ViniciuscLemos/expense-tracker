@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { formatMoney, monthName, parseAmount, roughMoney, shiftMonth, today, yearOf } from '../lib/finance';
+import { amountField, formatMoney, monthName, parseAmount, roughMoney, shiftMonth, today, yearOf } from '../lib/finance';
 
 const monthLabel = (m) => `${monthName(m)} ${yearOf(m)}`;
 
@@ -78,6 +78,64 @@ function Goal({ goal, onChanged }) {
   );
 }
 
+// What last month ended with, minus what already went into goals this month: that's what can
+// be put aside without touching this month's money. One field, one pick, one button.
+function Leftover({ goals, onChanged }) {
+  const [left, setLeft] = useState(null);
+  const [amount, setAmount] = useState('');
+  const [goalId, setGoalId] = useState('');
+  const [error, setError] = useState('');
+  const open = goals.filter((g) => !g.reached);
+
+  useEffect(() => {
+    api('/goals/leftover').then((l) => { setLeft(l); setAmount(l.left_cents ? amountField(l.left_cents) : ''); }).catch(() => {});
+  }, [goals]);
+
+  if (!left || left.kept_cents <= 0 || !open.length) return null;
+  const month = monthName(left.month);
+  if (!left.left_cents) {
+    return <p className="leftover done">{month}'s {roughMoney(left.kept_cents)} ahead is already put aside.</p>;
+  }
+
+  async function put(e) {
+    e.preventDefault();
+    const cents = parseAmount(amount);
+    if (!cents) { setError('Write an amount, like 300 or 300,00.'); return; }
+    try {
+      await api(`/goals/${goalId || open[0].id}/moves`, { method: 'POST', body: { amount_cents: cents } });
+      setError('');
+      onChanged();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <form className="leftover" onSubmit={put} aria-labelledby="leftover-title">
+      <p id="leftover-title">
+        {month} ended <strong>{roughMoney(left.kept_cents)}</strong> ahead
+        {left.put_aside_cents > 0 && <>, and {roughMoney(left.put_aside_cents)} of it already went into goals</>}.
+        {' '}Put {left.put_aside_cents > 0 ? 'the rest' : 'it'} somewhere?
+      </p>
+      <div className="leftover-fields">
+        <label>
+          <span className="sr-only">Amount to put aside</span>
+          <span aria-hidden="true">R$</span>
+          <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" />
+        </label>
+        <label>
+          <span className="sr-only">Into which goal</span>
+          <select value={goalId || open[0].id} onChange={(e) => setGoalId(e.target.value)}>
+            {open.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+        </label>
+        <button type="submit" className="ink small">Put it in</button>
+      </div>
+      {error && <p className="error" role="alert">{error}</p>}
+    </form>
+  );
+}
+
 function NewGoal({ onChanged }) {
   const thisMonth = today().slice(0, 7);
   const [name, setName] = useState('');
@@ -137,6 +195,7 @@ export default function Goals() {
         <p className="lede">Something to save for? Give it a name and an amount, and a month if it has one: it tells you how much to put aside each month.</p>
       )}
       {problem && <p className="problem" role="alert">{problem}</p>}
+      {goals && <Leftover goals={goals} onChanged={load} />}
       {goals && goals.length > 0 && <ul className="goal-list">{goals.map((g) => <Goal key={g.id} goal={g} onChanged={load} />)}</ul>}
       {goals && <NewGoal onChanged={load} />}
     </main>

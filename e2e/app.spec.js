@@ -200,3 +200,17 @@ test('a bank statement comes in once, with categories guessed', async ({ page })
   await page.getByRole('button', { name: 'month', exact: true }).click();
   await expect(page.locator('.ledger')).toContainText('iFood *Pizza');
 });
+
+test("last month's leftover can go into a goal", async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: "Open Marina's notebook" }).click();
+  await page.getByRole('button', { name: 'goals', exact: true }).click();
+  const leftover = page.locator('form.leftover');
+  await expect(leftover).toContainText('ended');
+  await leftover.getByLabel('Amount to put aside').fill('100');
+  await leftover.getByLabel('Into which goal').selectOption({ label: 'Trip to Chile' });
+  const before = await page.locator('.goal', { hasText: 'Trip to Chile' }).locator('.goal-figures').innerText();
+  await leftover.getByRole('button', { name: 'Put it in' }).click();
+  await expect(page.locator('.goal', { hasText: 'Trip to Chile' }).locator('.goal-figures')).not.toHaveText(before);
+  await expect(leftover).toContainText('already went into goals');
+});
