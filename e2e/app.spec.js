@@ -214,3 +214,22 @@ test("last month's leftover can go into a goal", async ({ page }) => {
   await expect(page.locator('.goal', { hasText: 'Trip to Chile' }).locator('.goal-figures')).not.toHaveText(before);
   await expect(leftover).toContainText('already went into goals');
 });
+
+test('a bill written by hand every month is offered to become automatic', async ({ page }) => {
+  await signUp(page);
+  const headers = { 'X-Requested-With': 'fetch' };
+  const fun = (await (await page.request.get('./api/categories')).json()).find((c) => c.name === 'Fun' && c.kind === 'expense');
+  const now = new Date();
+  for (const back of [3, 2, 1]) {
+    const d = new Date(now.getFullYear(), now.getMonth() - back, 8);
+    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-08`;
+    await page.request.post('./api/entries', { headers, data: { kind: 'expense', category_id: fun.id, amount_cents: 5590, description: `Spotify ${back}`, day } });
+  }
+  await page.getByRole('button', { name: 'categories', exact: true }).click();
+  const found = page.locator('.found');
+  await expect(found).toContainText('Spotify');
+  await expect(found).toContainText('in 3 of the last 6 months');
+  await found.getByRole('button', { name: 'make it automatic' }).click();
+  await expect(page.locator('.found')).toHaveCount(0);
+  await expect(page.locator('.recurring ul').first()).toContainText('Spotify');
+});

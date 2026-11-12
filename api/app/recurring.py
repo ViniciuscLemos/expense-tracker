@@ -123,7 +123,7 @@ def suggestions(user=Depends(current_user), conn=Depends(db, scope="function")):
             "day_of_month": day, "months": len(by_month), "first_day": first,
         })
     out.sort(key=lambda s: -s["amount_cents"])
-    return out[:10]
+    return out[:5]
 
 
 class Dismiss(BaseModel):

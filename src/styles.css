@@ -676,3 +676,10 @@ footer a { color: inherit; }
 .leftover-fields label { display: flex; gap: 6px; align-items: baseline; font-family: var(--mono); color: var(--ink-soft); }
 .leftover-fields input { width: 120px; font-family: var(--mono); text-align: right; color: var(--ink); }
 .leftover-fields select { color: var(--ink); font-family: var(--sans); }
+
+/* bills that look like they repeat, offered to become automatic */
+.found { margin: 14px 0 18px; padding: 12px 14px; background: var(--paper-2); border-left: 3px solid var(--pen); }
+.found p { margin: 0 0 6px; font-family: var(--serif); font-size: 16px; }
+.found ul { list-style: none; margin: 0; padding: 0; }
+.found .recurring-row:last-child { border-bottom: 0; }
+.found .count { color: var(--ink-soft); }

@@ -132,12 +132,19 @@ function NewCategory({ kind, onChanged }) {
 }
 
 // what's written down on its own every month: rent, salary, the internet bill
+const ordinal = (n) => ['th', 'st', 'nd', 'rd'][(n % 10 > 3 || [11, 12, 13].includes(n)) ? 0 : n % 10];
+
 function Recurring({ categories }) {
   const [list, setList] = useState(null);
+  const [found, setFound] = useState([]);
   const [error, setError] = useState('');
   const name = (id) => categories.find((c) => c.id === id)?.name || '';
 
-  const load = () => api('/recurring').then(setList).catch((e) => setError(e.message));
+  const load = () => Promise.all([
+    api('/recurring').then(setList),
+    // bills written by hand month after month, offered to become recurring
+    api('/recurring/suggestions').then(setFound).catch(() => setFound([])),
+  ]).catch((e) => setError(e.message));
   useEffect(() => { load(); }, []);
 
   async function act(path, options) {
@@ -156,6 +163,27 @@ function Recurring({ categories }) {
   return (
     <section className="category-group recurring">
       <h2>Every month</h2>
+      {found.length > 0 && (
+        <div className="found" aria-labelledby="found-title">
+          <p id="found-title">These look like they come every month, and you write them by hand:</p>
+          <ul>
+            {found.map((s) => (
+              <li key={s.key} className="recurring-row">
+                <span className="name-text">{s.description}</span>
+                <span className="figures-small">{s.kind === 'income' ? '+' : ''}{formatMoney(s.amount_cents)}</span>
+                <span className="count">around the {s.day_of_month}{ordinal(s.day_of_month)} · in {s.months} of the last 6 months</span>
+                <span className="row-actions always">
+                  <button type="button" className="link" onClick={() => act('/recurring', { method: 'POST', body: {
+                    kind: s.kind, category_id: s.category_id, amount_cents: s.amount_cents, description: s.description, first_day: s.first_day,
+                  } })}>make it automatic</button>
+                  <button type="button" className="link" aria-label={`Not ${s.description}`}
+                    onClick={() => act('/recurring/suggestions/dismiss', { method: 'POST', body: { key: s.key } })}>no</button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {list.length === 0 ? (
         <p className="quiet">
           Nothing yet. When writing an entry, tick <em>every month</em> and it gets written down on its own on that day.
@@ -166,7 +194,7 @@ function Recurring({ categories }) {
             <li key={r.id} className={`recurring-row ${r.active ? '' : 'archived'}`}>
               <span className="name-text">{r.description}</span>
               <span className="figures-small">{r.kind === 'income' ? '+' : ''}{formatMoney(r.amount_cents)}</span>
-              <span className="count">on the {r.day_of_month}{['th', 'st', 'nd', 'rd'][(r.day_of_month % 10 > 3 || [11, 12, 13].includes(r.day_of_month)) ? 0 : r.day_of_month % 10]} · {name(r.category_id)}</span>
+              <span className="count">on the {r.day_of_month}{ordinal(r.day_of_month)} · {name(r.category_id)}</span>
               <span className="count">{r.active ? `next ${nextLabel(r)}` : 'paused'}</span>
               <span className="row-actions always">
                 <button type="button" className="link" onClick={() => act(`/recurring/${r.id}`, { method: 'PATCH', body: { active: !r.active } })}>
