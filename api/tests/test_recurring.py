@@ -3,7 +3,7 @@ from datetime import date
 from app.months import shift, today
 from app.recurring import after, on_day, post_due
 
-from .conftest import category
+from .conftest import add, category
 
 
 def months_ago(n: int, day: int) -> date:
@@ -84,3 +84,35 @@ def test_the_category_rules_apply_here_too(ana):
     body = {"kind": "expense", "category_id": category(ana, "Salary", "income")["id"], "amount_cents": 100,
             "description": "x", "first_day": today().isoformat()}
     assert ana.post("/api/recurring", json=body).status_code == 422
+
+
+def test_a_bill_written_by_hand_every_month_is_suggested(ana):
+    first = today().replace(day=1)
+    for n, cents in [(3, 5590), (2, 5590), (1, 5990)]:
+        month = shift(first, -n)
+        add(ana, f"Netflix.com {month.month:02d}/26", cents, month.replace(day=8).isoformat(), cat="Fun")
+    # twice isn't a pattern, and an amount all over the place isn't a bill
+    for n in (2, 1):
+        add(ana, "Pharmacy", 2000, shift(first, -n).replace(day=3).isoformat(), cat="Health")
+    for n, cents in [(3, 10000), (2, 40000), (1, 9000)]:
+        add(ana, "Market", cents, shift(first, -n).replace(day=5).isoformat())
+
+    found = ana.get("/api/recurring/suggestions").json()
+    assert [s["description"] for s in found] == ["Netflix.com"]
+    netflix = found[0]
+    assert netflix["months"] == 3 and netflix["day_of_month"] == 8 and netflix["amount_cents"] == 5990
+    assert netflix["first_day"] == first.replace(day=8).isoformat()
+
+    # said no to: it doesn't come back
+    assert ana.post("/api/recurring/suggestions/dismiss", json={"key": netflix["key"]}).status_code == 204
+    assert ana.get("/api/recurring/suggestions").json() == []
+
+
+def test_a_bill_already_recurring_is_not_suggested(ana):
+    first = today().replace(day=1)
+    for n in (3, 2, 1):
+        add(ana, "Gym", 9900, shift(first, -n).replace(day=10).isoformat(), cat="Health")
+    assert len(ana.get("/api/recurring/suggestions").json()) == 1
+    ana.post("/api/recurring", json={"kind": "expense", "category_id": category(ana, "Health")["id"],
+                                     "amount_cents": 9900, "description": "GYM", "first_day": first.replace(day=10).isoformat()})
+    assert ana.get("/api/recurring/suggestions").json() == []

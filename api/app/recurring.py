@@ -1,3 +1,6 @@
+import re
+import statistics
+from collections import defaultdict
 from datetime import date
 from typing import Literal
 
@@ -67,6 +70,70 @@ def owned(conn, user_id: int, recurring_id: int) -> dict:
     if not row:
         raise HTTPException(404, "No such recurring entry.")
     return row
+
+
+def suggestion_key(kind: str, description: str) -> str:
+    """'Netflix.com 11/26' and 'NETFLIX.COM 10/26' are the same bill: lower case, no digits,
+    no punctuation, single spaces."""
+    text = re.sub(r"[^a-zà-ÿ ]+", " ", description.lower())
+    return f"{kind}:{' '.join(text.split())}"[:160]
+
+
+@router.get("/suggestions")
+def suggestions(user=Depends(current_user), conn=Depends(db, scope="function")):
+    """Entries written by hand that look like they come every month: the same description in
+    at least three of the last six months, about the same amount (within 15%) and not already
+    a recurring entry or said no to. Each comes with what to set it up with."""
+    uid = user["id"]
+    now = today()
+    since = shift(now.replace(day=1), -6)
+    rows = conn.execute(
+        "SELECT kind, category_id, amount_cents, description, day FROM entries "
+        "WHERE user_id = %s AND recurring_id IS NULL AND day >= %s AND day <= %s ORDER BY day",
+        (uid, since, now)).fetchall()
+    known = {suggestion_key(r["kind"], r["description"]) for r in
+             conn.execute("SELECT kind, description FROM recurring WHERE user_id = %s", (uid,))}
+    known |= {r["key"] for r in conn.execute("SELECT key FROM recurring_dismissed WHERE user_id = %s", (uid,))}
+
+    groups = defaultdict(list)
+    for r in rows:
+        key = suggestion_key(r["kind"], r["description"])
+        if key.split(":", 1)[1] and key not in known:
+            groups[key].append(r)
+    out = []
+    for key, items in groups.items():
+        by_month = {}
+        for r in items:
+            by_month.setdefault(r["day"].strftime("%Y-%m"), r)  # one per month: the first
+        if len(by_month) < 3:
+            continue
+        amounts = [r["amount_cents"] for r in by_month.values()]
+        mean = statistics.mean(amounts)
+        if max(abs(a - mean) for a in amounts) > 0.15 * mean:
+            continue
+        last = items[-1]
+        day = round(statistics.median(r["day"].day for r in by_month.values()))
+        # the next time it falls after the last one written, so nothing gets written twice
+        first = on_day(shift(last["day"].replace(day=1), 1), day)
+        out.append({
+            "key": key, "kind": last["kind"], "category_id": last["category_id"],
+            # "Netflix.com 11/26" becomes "Netflix.com": the date belongs to one month, not all of them
+            "description": " ".join(w for w in last["description"].split() if not re.search(r"\d", w)) or last["description"],
+            "amount_cents": last["amount_cents"],
+            "day_of_month": day, "months": len(by_month), "first_day": first,
+        })
+    out.sort(key=lambda s: -s["amount_cents"])
+    return out[:10]
+
+
+class Dismiss(BaseModel):
+    key: str = Field(min_length=1, max_length=160)
+
+
+@router.post("/suggestions/dismiss", status_code=204)
+def dismiss(body: Dismiss, user=Depends(current_user), conn=Depends(db, scope="function")):
+    conn.execute("INSERT INTO recurring_dismissed (user_id, key) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                 (user["id"], body.key))
 
 
 @router.get("")
