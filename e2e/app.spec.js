@@ -172,3 +172,31 @@ test('a goal: start it, put money in, take some out', async ({ page }) => {
   await goal.getByRole('button', { name: 'yes, delete' }).click();
   await expect(page.locator('.goal')).toHaveCount(0);
 });
+
+test('a bank statement comes in once, with categories guessed', async ({ page }) => {
+  await signUp(page);
+  await page.getByRole('button', { name: 'categories', exact: true }).click();
+  const csv = [
+    'date,title,amount',
+    `${new Date().toISOString().slice(0, 10)},Uber *Trip,23.45`,
+    `${new Date().toISOString().slice(0, 10)},iFood *Pizza,61.90`,
+    `${new Date().toISOString().slice(0, 10)},Pagamento recebido,-500.00`,
+  ].join('\n');
+  const file = { name: 'nubank.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) };
+  const section = page.locator('section.import', { hasText: 'From your bank' });
+
+  await section.locator('input[type=file]').setInputFiles(file);
+  await expect(section.locator('.bank-preview')).toContainText('2 expenses');
+  await expect(section.locator('.bank-preview')).toContainText('1 line left out');
+  await expect(section.locator('.bank-preview')).toContainText('Transport (1)');
+  await section.getByRole('button', { name: 'Bring them in' }).click();
+  await expect(section.getByRole('status')).toContainText('2 entries brought in');
+
+  // the same file again brings nothing new
+  await section.locator('input[type=file]').setInputFiles(file);
+  await section.getByRole('button', { name: 'Bring them in' }).click();
+  await expect(section.getByRole('status')).toContainText('already here');
+
+  await page.getByRole('button', { name: 'month', exact: true }).click();
+  await expect(page.locator('.ledger')).toContainText('iFood *Pizza');
+});
