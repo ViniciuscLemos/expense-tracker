@@ -634,3 +634,32 @@ footer a { color: inherit; }
 }
 
 .noscript { max-width: 560px; margin: 40px auto; padding: 14px 18px; border-left: 3px solid currentColor; font: 16px/1.5 system-ui, sans-serif; }
+
+/* ---------- goals ---------- */
+
+.goals { max-width: 760px; padding-top: 34px; }
+.goals h1 { font-size: 44px; }
+.goal-list { list-style: none; margin: 30px 0 0; padding: 0; display: flex; flex-direction: column; gap: 34px; }
+.goal-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.goal-head h2 { font-size: 24px; }
+.goal-figures { font-family: var(--mono); font-size: 16px; }
+.goal-figures span { color: var(--ink-faint); font-size: 14px; }
+.goal-bar { height: 8px; background: var(--rule); border-radius: 4px; overflow: hidden; margin: 10px 0 8px; }
+.goal-bar span { display: block; height: 100%; background: var(--pen); border-radius: 4px; transition: width 0.3s; }
+.goal.reached .goal-bar span { background: var(--in); }
+.goal-line { font-family: var(--serif); font-size: 18px; color: var(--ink-soft); margin: 0 0 12px; }
+.goal-move { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.goal-move label { display: flex; align-items: baseline; gap: 6px; font-family: var(--mono); color: var(--ink-faint); }
+.goal-move input { width: 110px; font-family: var(--mono); text-align: right; color: var(--ink); }
+.goal-tools { margin-left: auto; display: flex; gap: 12px; align-items: baseline; font-size: 14px; color: var(--ink-soft); }
+.link.danger { color: var(--over); }
+.new-goal { margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--rule); }
+.new-goal h2 { font-size: 21px; margin-bottom: 14px; }
+.new-goal-fields { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-bottom: 16px; }
+.new-goal label { display: flex; flex-direction: column; font-size: 12px; color: var(--ink-faint); }
+.new-goal input { font-size: 15px; color: var(--ink); width: 100%; }
+@media (max-width: 640px) {
+  .new-goal-fields { grid-template-columns: 1fr; }
+  .goal-tools { margin-left: 0; width: 100%; }
+}
+@media (pointer: coarse) { .goal-move input, .new-goal input { font-size: 16px; } }

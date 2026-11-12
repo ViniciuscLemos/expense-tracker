@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from './lib/api';
 import Categories from './components/Categories';
+import Goals from './components/Goals';
 import Login from './components/Login';
 import Month from './components/Month';
 import Year from './components/Year';
 
-const PAGES = ['categories', 'year'];
+const PAGES = ['categories', 'year', 'goals'];
 const pageFromHash = () => {
   const page = window.location.hash.slice(1);
   return PAGES.includes(page) ? page : 'month';
@@ -53,6 +54,7 @@ export default function App() {
         <nav aria-label="Pages">
           <button type="button" className="link" aria-current={page === 'month' ? 'page' : undefined} onClick={() => { setStartMonth(null); open('month'); }}>month</button>
           <button type="button" className="link" aria-current={page === 'year' ? 'page' : undefined} onClick={() => open('year')}>year</button>
+          <button type="button" className="link" aria-current={page === 'goals' ? 'page' : undefined} onClick={() => open('goals')}>goals</button>
           <button type="button" className="link" aria-current={page === 'categories' ? 'page' : undefined} onClick={() => open('categories')}>categories</button>
           <button type="button" className="link" onClick={logout}>log out</button>
         </nav>
@@ -60,6 +62,7 @@ export default function App() {
 
       {page === 'month' && <Month key={startMonth || 'now'} categories={categories} startMonth={startMonth} onCategories={() => open('categories')} />}
       {page === 'year' && <Year onMonth={(m) => { setStartMonth(m); open('month'); }} />}
+      {page === 'goals' && <Goals />}
       {page === 'categories' && <Categories categories={categories} onChanged={loadCategories} />}
 
       <footer>
