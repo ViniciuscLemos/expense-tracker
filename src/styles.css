@@ -663,3 +663,7 @@ footer a { color: inherit; }
   .goal-tools { margin-left: 0; width: 100%; }
 }
 @media (pointer: coarse) { .goal-move input, .new-goal input { font-size: 16px; } }
+
+.bank-preview { margin-top: 12px; padding: 12px 14px; border-left: 3px solid var(--pen); background: var(--paper-2); }
+.bank-preview p { margin: 0 0 8px; }
+.bank-actions { display: flex; gap: 18px; align-items: center; margin-top: 10px; }

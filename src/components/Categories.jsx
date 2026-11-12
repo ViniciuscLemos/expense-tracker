@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { amountField, formatMoney, parseAmount } from '../lib/finance';
+import { readStatement } from '../lib/bank';
 
 const PALETTE = ['#c2703d', '#4a6fa5', '#5b8c85', '#b5577a', '#c44536', '#7a6aa8', '#a68a3d', '#3f7d58', '#6a9a4f', '#8a8378'];
 
@@ -184,6 +185,82 @@ function Recurring({ categories }) {
   );
 }
 
+function BankImport({ onChanged }) {
+  const input = useRef(null);
+  const [read, setRead] = useState(null);
+  const [notice, setNotice] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function pick(event) {
+    const file = event.target.files[0];
+    event.target.value = '';
+    if (!file) return;
+    setNotice('');
+    try {
+      const result = readStatement(await file.text());
+      if (!result.entries.length) throw new Error('Nothing in that file looks like spending or income.');
+      setRead({ ...result, file: file.name });
+    } catch (e) {
+      setRead(null);
+      setNotice(e.message);
+    }
+  }
+
+  async function bring() {
+    setBusy(true);
+    try {
+      const result = await api('/entries/import', { method: 'POST', body: { entries: read.entries } });
+      setNotice(result.imported
+        ? `${result.imported} ${result.imported === 1 ? 'entry' : 'entries'} brought in${result.already_here ? `, ${result.already_here} already here` : ''}.`
+        : 'Everything in that file is already here.');
+      setRead(null);
+      await onChanged();
+    } catch (e) {
+      setNotice(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const out = read ? read.entries.filter((e) => e.type === 'expense') : [];
+  const came = read ? read.entries.filter((e) => e.type === 'income') : [];
+  const sum = (list) => list.reduce((s, e) => s + e.amount, 0);
+  const byCategory = read
+    ? Object.entries(out.reduce((acc, e) => ({ ...acc, [e.category]: (acc[e.category] || 0) + 1 }), {})).sort((a, b) => b[1] - a[1])
+    : [];
+
+  return (
+    <section className="import">
+      <h2>From your bank</h2>
+      <p>
+        Export the statement as CSV (Nubank, Inter, or any bank that gives a date, a description and
+        an amount) and bring it here. The file is read in this browser; only the entries come in.
+        Paying the card bill and moving money to savings are left out, and the same file twice
+        doesn't repeat anything.
+      </p>
+      {!read && <button type="button" className="ink small" onClick={() => input.current.click()}>Choose the statement</button>}
+      <input ref={input} type="file" accept=".csv,text/csv" onChange={pick} hidden />
+      {read && (
+        <div className="bank-preview">
+          <p>
+            <strong>{read.file}</strong>: {out.length} {out.length === 1 ? 'expense' : 'expenses'} ({formatMoney(sum(out))})
+            {came.length > 0 && <> and {came.length} coming in ({formatMoney(sum(came))})</>}
+            {read.skipped > 0 && <>, {read.skipped} {read.skipped === 1 ? 'line' : 'lines'} left out</>}.
+          </p>
+          {byCategory.length > 0 && (
+            <p className="quiet">Spending goes to {byCategory.map(([name, n]) => `${name} (${n})`).join(', ')}. You can change any of them later on the month page.</p>
+          )}
+          <div className="bank-actions">
+            <button type="button" className="ink small" onClick={bring} disabled={busy}>{busy ? 'Bringing in…' : 'Bring them in'}</button>
+            <button type="button" className="link" onClick={() => setRead(null)}>choose another</button>
+          </div>
+        </div>
+      )}
+      {notice && <p role="status">{notice}</p>}
+    </section>
+  );
+}
+
 function Import({ onChanged }) {
   const input = useRef(null);
   const [notice, setNotice] = useState('');
@@ -256,6 +333,8 @@ export default function Categories({ categories, onChanged }) {
       })}
 
       <Recurring categories={categories} />
+
+      <BankImport onChanged={onChanged} />
 
       <Import onChanged={onChanged} />
     </main>
