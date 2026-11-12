@@ -39,6 +39,14 @@ RECURRING = {"Salary", "Rent", "Internet"}
 BUDGETS = {"Food": 90000, "Fun": 25000, "Shopping": 40000, "Transport": 15000}
 
 
+# name, amount, month to reach it by (months from now) and the moves (months ago, amount)
+GOALS = [
+    ("Trip to Chile", 800000, 7, [(4, 100000), (3, 120000), (2, 80000), (1, 100000)]),
+    ("Cushion for a bad month", 1500000, None, [(5, 200000), (3, 150000), (2, -50000), (1, 100000)]),
+    ("New phone", 250000, None, [(5, 100000), (4, 100000), (3, 50000)]),
+]
+
+
 def last_day(first: date) -> int:
     return (shift(first, 1) - first).days
 
@@ -83,3 +91,13 @@ def reset(pool):
                 (user_id, kind, cats[(kind, category)], cents, text, day, due)).fetchone()["id"]
             conn.execute("UPDATE entries SET recurring_id = %s WHERE user_id = %s AND description = %s",
                          (rid, user_id, text))
+
+        # three goals: one with a date, one without, one already there
+        for name, target, by, moves in GOALS:
+            gid = conn.execute(
+                "INSERT INTO goals (user_id, name, target_cents, by_month) VALUES (%s, %s, %s, %s) RETURNING id",
+                (user_id, name, target, shift(this_month, by) if by is not None else None)).fetchone()["id"]
+            for back, cents in moves:
+                first = shift(this_month, -back)
+                conn.execute("INSERT INTO goal_moves (goal_id, user_id, amount_cents, day) VALUES (%s, %s, %s, %s)",
+                             (gid, user_id, cents, date(first.year, first.month, min(6, now.day) if back == 0 else 6)))
