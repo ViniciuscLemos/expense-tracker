@@ -1,6 +1,6 @@
 from app.months import shift, today
 
-from .conftest import client_for, sign_up
+from .conftest import add, client_for, sign_up
 
 
 def month(n: int) -> str:
@@ -72,3 +72,15 @@ def test_someone_elses_goal_is_out_of_reach(app, ana):
     assert bia.post(f"/api/goals/{gid}/moves", json={"amount_cents": 500}).status_code == 404
     assert bia.patch(f"/api/goals/{gid}", json={"name": "Hers"}).status_code == 404
     assert bia.delete(f"/api/goals/{gid}").status_code == 404
+
+
+def test_what_last_month_left_and_what_already_went_in(ana):
+    first = today().replace(day=1)
+    last = shift(first, -1)
+    add(ana, "Salary", 500000, last.isoformat(), cat="Salary", kind="income")
+    add(ana, "Rent", 320000, last.replace(day=2).isoformat(), cat="Housing")
+    gid = ana.post("/api/goals", json={"name": "Trip", "target_cents": 1000000}).json()["id"]
+    left = ana.get("/api/goals/leftover").json()
+    assert left == {"month": last.strftime("%Y-%m"), "kept_cents": 180000, "put_aside_cents": 0, "left_cents": 180000}
+    ana.post(f"/api/goals/{gid}/moves", json={"amount_cents": 50000})
+    assert ana.get("/api/goals/leftover").json()["left_cents"] == 130000

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from .deps import current_user, db
-from .months import today
+from .months import label, shift, today
 
 router = APIRouter(prefix="/api/goals")
 
@@ -78,6 +78,25 @@ def check_month(month: str | None):
     now = today()
     if month and first_of(month) < date(now.year, now.month, 1):
         raise HTTPException(422, "That month is already over.")
+
+
+@router.get("/leftover")
+def leftover(user=Depends(current_user), conn=Depends(db, scope="function")):
+    """What last month ended with, and how much has gone into goals since this month began:
+    the rest is what could still be put aside without touching this month's money."""
+    now = today()
+    this = date(now.year, now.month, 1)
+    last = shift(this, -1)
+    row = conn.execute(
+        "SELECT coalesce(sum(amount_cents) FILTER (WHERE kind = 'income'), 0)::bigint AS income, "
+        "coalesce(sum(amount_cents) FILTER (WHERE kind = 'expense'), 0)::bigint AS expenses "
+        "FROM entries WHERE user_id = %s AND day >= %s AND day < %s", (user["id"], last, this)).fetchone()
+    moved = conn.execute(
+        "SELECT coalesce(sum(amount_cents), 0)::bigint AS n FROM goal_moves WHERE user_id = %s AND day >= %s",
+        (user["id"], this)).fetchone()["n"]
+    kept = row["income"] - row["expenses"]
+    return {"month": label(last), "kept_cents": kept, "put_aside_cents": moved,
+            "left_cents": max(0, kept - max(0, moved))}
 
 
 @router.get("")
