@@ -6,6 +6,15 @@ Write down what you spend and what comes in, and at the end of the month read ho
 
 React on the page, a Python API (FastAPI) and Postgres behind it.
 
+What's there today:
+
+- **The month:** entries by day, the month in sentences, budgets per category, a calendar of the days that cost the most, the biggest expenses, and search across every month.
+- **The year:** twelve months side by side, what was kept, where it went.
+- **Goals:** money put aside for something, with how much a month gets it there.
+- **Shared:** half of an expense can be someone else's, and the page keeps who owes what.
+- **Less typing:** bills that come every month written on their own, suggestions of which ones should be, and the bank's CSV statement read straight in.
+- **No signal:** entries written offline wait and go when the connection is back.
+
 **Try it:** [expense-tracker-qm7l.onrender.com](https://expense-tracker-qm7l.onrender.com). The *Open Marina's notebook* button logs in as a made-up person with six months written down. It's a free instance, so the first visit after a while takes up to a minute.
 
 ![October in the demo account: the month told in a few sentences, the entries by day, the budgets, a calendar of the month](docs/screenshot.png)
