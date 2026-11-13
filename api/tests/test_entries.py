@@ -14,6 +14,20 @@ def test_add_edit_delete(ana):
     assert ana.get("/api/entries").json()["entries"] == []
 
 
+def test_an_entry_sent_again_from_offline_is_written_once(ana):
+    food = category(ana, "Food")["id"]
+    body = {"kind": "expense", "category_id": food, "amount_cents": 1800, "description": "Bus",
+            "day": "2026-10-08", "client_key": "k-20261008-abc123"}
+    first = ana.post("/api/entries", json=body)
+    again = ana.post("/api/entries", json=body)
+    assert first.status_code == again.status_code == 201
+    assert first.json()["id"] == again.json()["id"]
+    assert len(ana.get("/api/entries").json()["entries"]) == 1
+    # a different key is a different bus ride
+    assert ana.post("/api/entries", json={**body, "client_key": "k-20261008-def456"}).json()["id"] != first.json()["id"]
+    assert ana.post("/api/entries", json={**body, "client_key": "no spaces"}).status_code == 422
+
+
 def test_amounts_are_whole_positive_cents(ana):
     food = category(ana, "Food")["id"]
     for bad in (0, -100, 12.5, "10"):

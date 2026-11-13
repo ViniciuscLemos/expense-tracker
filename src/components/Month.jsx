@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, query } from '../lib/api';
+import { sendOrKeep, sendWaiting, waiting } from '../lib/outbox';
 import { formatMoney, monthName, monthOf, shiftMonth, toCsv, today, yearOf } from '../lib/finance';
 import { story } from '../lib/story';
 import Biggest from './Biggest';
@@ -23,6 +24,9 @@ export default function Month({ categories, startMonth, onCategories }) {
   const [editing, setEditing] = useState(null);
   const [deleted, setDeleted] = useState(null);
   const [problem, setProblem] = useState('');
+  // written while offline, waiting to go
+  const [pending, setPending] = useState(() => waiting());
+  const [lost, setLost] = useState([]);
   const undoTimer = useRef(null);
   const todayIso = today();
 
@@ -63,6 +67,22 @@ export default function Month({ categories, startMonth, onCategories }) {
 
   const refresh = () => Promise.all([loadDash(), loadList()]);
 
+  // what was written offline goes when the connection is back (or the page opens again)
+  const post = (entry) => api('/entries', { method: 'POST', body: entry });
+  const sendPending = useCallback(async () => {
+    if (!waiting().length) return;
+    const { sent, refused } = await sendWaiting(post);
+    setPending(waiting());
+    if (refused.length) setLost(refused);
+    if (sent.length) refresh();
+  }, [loadDash, loadList]);
+
+  useEffect(() => {
+    sendPending();
+    window.addEventListener('online', sendPending);
+    return () => window.removeEventListener('online', sendPending);
+  }, [sendPending]);
+
   async function more() {
     const turn = listTurn.current;
     const page = await api(`/entries${query({ ...scope, ...filter, after: list.next })}`);
@@ -75,7 +95,8 @@ export default function Month({ categories, startMonth, onCategories }) {
       const { day, ...rest } = entry;
       await api('/recurring', { method: 'POST', body: { ...rest, first_day: day } });
     } else {
-      await api('/entries', { method: 'POST', body: entry });
+      const { kept } = await sendOrKeep(entry, post);
+      if (kept) return setPending(waiting());
     }
     // written in another month: go there, so it's clear it was saved
     if (monthOf(entry.day) !== month) setMonth(monthOf(entry.day));
@@ -162,6 +183,27 @@ export default function Month({ categories, startMonth, onCategories }) {
           </>
         )}
       </section>
+
+      {pending.length > 0 && (
+        <section className="outbox" aria-live="polite">
+          <p>
+            <strong>{pending.length === 1 ? '1 entry is' : `${pending.length} entries are`} waiting for the connection.</strong>{' '}
+            They're kept in this browser and go on their own as soon as it's back.
+          </p>
+          <ul>
+            {pending.map((e) => (
+              <li key={e.client_key}>{e.description} <span>{e.kind === 'income' ? '+' : '−'}{formatMoney(e.amount_cents)}</span></li>
+            ))}
+          </ul>
+          <button type="button" className="link" onClick={sendPending}>try now</button>
+        </section>
+      )}
+      {lost.length > 0 && (
+        <p className="problem" role="alert">
+          {lost.map((l) => `“${l.entry.description}” couldn't be saved: ${l.reason}`).join(' ')}{' '}
+          <button type="button" className="link" onClick={() => setLost([])}>ok</button>
+        </p>
+      )}
 
       {problem && (
         <p className="problem" role="alert">

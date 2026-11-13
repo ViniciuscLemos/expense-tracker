@@ -20,6 +20,9 @@ class NewEntry(BaseModel):
     amount_cents: int = Field(gt=0, lt=100_000_000_000, strict=True)
     description: str = Field(min_length=1, max_length=120)
     day: date
+    # written while offline: the page makes up this key and sends the entry again until it
+    # gets an answer, so a reply lost on a bad connection doesn't write it down twice
+    client_key: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{8,60}$")
 
 
 class EntryChange(BaseModel):
@@ -103,10 +106,17 @@ def get_entry(conn, user_id: int, entry_id: int) -> dict:
 @router.post("", status_code=201)
 def add_entry(body: NewEntry, user=Depends(current_user), conn=Depends(db, scope="function")):
     check_category(conn, user["id"], body.category_id, body.kind)
-    return conn.execute(
-        "INSERT INTO entries (user_id, kind, category_id, amount_cents, description, day) "
-        "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, kind, category_id, amount_cents, description, day, created_at, recurring_id",
-        (user["id"], body.kind, body.category_id, body.amount_cents, body.description.strip(), body.day)).fetchone()
+    source = f"offline:{body.client_key}" if body.client_key else None
+    row = conn.execute(
+        "INSERT INTO entries (user_id, kind, category_id, amount_cents, description, day, source_id) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (user_id, source_id) WHERE source_id IS NOT NULL DO NOTHING "
+        "RETURNING id, kind, category_id, amount_cents, description, day, created_at, recurring_id",
+        (user["id"], body.kind, body.category_id, body.amount_cents, body.description.strip(), body.day, source)).fetchone()
+    if row is None:
+        # this one arrived before and the answer got lost on the way: the same entry, not a second
+        row = conn.execute(f"SELECT {FIELDS} FROM entries e WHERE e.user_id = %s AND e.source_id = %s",
+                           (user["id"], source)).fetchone()
+    return row
 
 
 @router.patch("/{entry_id}")

@@ -233,3 +233,19 @@ test('a bill written by hand every month is offered to become automatic', async 
   await expect(page.locator('.found')).toHaveCount(0);
   await expect(page.locator('.recurring ul').first()).toContainText('Spotify');
 });
+
+test('writes down without a connection, and sends it when it comes back', async ({ page, context }) => {
+  await signUp(page);
+  await context.setOffline(true);
+  await write(page, { what: 'Bus ticket', amount: '4,80' });
+  await expect(page.locator('.outbox')).toContainText('1 entry is waiting for the connection');
+  await expect(page.locator('.outbox')).toContainText('Bus ticket');
+  await context.setOffline(false);
+  await expect(page.locator('.outbox')).toBeHidden();
+  await expect(page.locator('.ledger-days')).toContainText('Bus ticket');
+  await expect(figure(page, 'went out')).toHaveText(/4,80/);
+  // a reload doesn't send it again
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Edit Bus ticket' })).toHaveCount(1);
+  await expect(figure(page, 'went out')).toHaveText(/4,80/);
+});

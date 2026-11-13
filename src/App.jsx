@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from './lib/api';
+import { forgetWaiting } from './lib/outbox';
 import Categories from './components/Categories';
 import Goals from './components/Goals';
 import Login from './components/Login';
@@ -35,6 +36,8 @@ export default function App() {
 
   async function logout() {
     await api('/logout', { method: 'POST' }).catch(() => {});
+    // entries still waiting to go are this person's, not the next one's on this browser
+    forgetWaiting();
     setUser(null);
     setCategories([]);
   }

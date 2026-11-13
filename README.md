@@ -31,6 +31,9 @@ I wanted it to feel like the notebook people actually use for this, not like a d
 - **A search can look in every month,** not only the one open: "when did I last pay the dentist?" With that on, each day in the list also says which month it's from. A search that finds nothing in this month offers to look in the others.
 - Categories can be renamed, recolored, archived or deleted. A category that still has entries has to move them to another one before it can go.
 - If you used the first version, its backup file can be brought in from the categories page. Bringing the same file twice doesn't repeat anything.
+- **Writing it down with no signal.** On the bus or at the back of the market the connection drops, and the entry doesn't get lost: it waits in the browser, shown above the page as *"2 entries are waiting for the connection"*, and goes on its own the moment the phone is back online (or the next time the page opens). Each one carries a key made up in the browser, and the API writes an entry with a key it has seen once only, so a reply lost on a bad connection doesn't turn one coffee into two. Logging out forgets whatever was still waiting.
+
+  <img src="docs/offline.png" alt="Two entries waiting for the connection, a bus ticket and a coffee, kept in the browser and sent when it's back, above the line to write a new one" width="680">
 - There's a dark mode, it works on the phone, and it can be installed as an app.
 
 <img src="docs/goals.png" alt="Three goals: a trip to Chile half way there with R$ 500 a month to go, a cushion with no date, and a phone that is all there" width="760">
@@ -114,7 +117,7 @@ The free instance sleeps after 15 minutes without visits, so the first visit aft
 
 - Money is stored in cents (integers), in the database and in JavaScript. With floats you get things like `0.1 + 0.2 = 0.30000000000000004`.
 - The page and the API share one address, so the cookie can be strict and nothing needs CORS.
-- The service worker keeps the page itself for offline opening, but never the API's answers: they're someone's money, and they'd stay in the cache after logging out.
+- The service worker keeps the page itself for offline opening, but never the API's answers: they're someone's money, and they'd stay in the cache after logging out. Entries written offline are the one thing kept, and only until they're sent.
 
 ## Structure
 
@@ -133,5 +136,6 @@ src/
   components/         Login, Month, EntryLine, Ledger, Budgets, Calendar, SixMonths, Categories
   lib/finance.js      money, months, the calendar
   lib/story.js        the month in sentences
+  lib/outbox.js       entries written offline, waiting to go
 e2e/                  Playwright
 ```
