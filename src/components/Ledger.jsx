@@ -37,6 +37,7 @@ export default function Ledger({ entries, categories, withMonth, editing, onEdit
                     <i style={{ background: category?.color }} aria-hidden="true" />
                     {category?.name}
                     {e.recurring_id && <span className="monthly" title="Written down every month on its own">· every month</span>}
+                    {e.split_with && <span className="monthly" title={`Half of it is ${e.split_with}'s`}>· half {e.split_with}'s</span>}
                   </span>
                   <span className="amount">{e.kind === 'income' ? '+' : ''}{formatMoney(e.amount_cents)}</span>
                   <span className="row-actions">

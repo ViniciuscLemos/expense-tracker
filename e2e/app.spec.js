@@ -249,3 +249,21 @@ test('writes down without a connection, and sends it when it comes back', async 
   await expect(page.getByRole('button', { name: 'Edit Bus ticket' })).toHaveCount(1);
   await expect(figure(page, 'went out')).toHaveText(/4,80/);
 });
+
+test('half of a dinner is someone else\'s, and they settle up', async ({ page }) => {
+  await signUp(page);
+  const line = page.locator('form.entry-line').first();
+  await line.getByLabel('What').fill('Dinner');
+  await line.getByLabel('R$').fill('120');
+  await line.getByLabel("half is someone else's").check();
+  await line.getByLabel('Whose half').fill('Bia');
+  await line.getByRole('button', { name: 'Write it down' }).click();
+  await expect(page.locator('.ledger-days')).toContainText("half Bia's");
+  // the whole dinner still left this pocket
+  await expect(figure(page, 'went out')).toHaveText(/120,00/);
+
+  await page.getByRole('button', { name: 'shared', exact: true }).click();
+  await expect(page.locator('.person')).toContainText('Bia owes you R$ 60,00.');
+  await page.getByRole('button', { name: 'settle up' }).click();
+  await expect(page.locator('.person')).toContainText('You and Bia are square.');
+});

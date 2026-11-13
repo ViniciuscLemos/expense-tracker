@@ -4,10 +4,11 @@ import { forgetWaiting } from './lib/outbox';
 import Categories from './components/Categories';
 import Goals from './components/Goals';
 import Login from './components/Login';
+import Shared from './components/Shared';
 import Month from './components/Month';
 import Year from './components/Year';
 
-const PAGES = ['categories', 'year', 'goals'];
+const PAGES = ['categories', 'year', 'goals', 'shared'];
 const pageFromHash = () => {
   const page = window.location.hash.slice(1);
   return PAGES.includes(page) ? page : 'month';
@@ -58,6 +59,7 @@ export default function App() {
           <button type="button" className="link" aria-current={page === 'month' ? 'page' : undefined} onClick={() => { setStartMonth(null); open('month'); }}>month</button>
           <button type="button" className="link" aria-current={page === 'year' ? 'page' : undefined} onClick={() => open('year')}>year</button>
           <button type="button" className="link" aria-current={page === 'goals' ? 'page' : undefined} onClick={() => open('goals')}>goals</button>
+          <button type="button" className="link" aria-current={page === 'shared' ? 'page' : undefined} onClick={() => open('shared')}>shared</button>
           <button type="button" className="link" aria-current={page === 'categories' ? 'page' : undefined} onClick={() => open('categories')}>categories</button>
           <button type="button" className="link" onClick={logout}>log out</button>
         </nav>
@@ -66,6 +68,7 @@ export default function App() {
       {page === 'month' && <Month key={startMonth || 'now'} categories={categories} startMonth={startMonth} onCategories={() => open('categories')} />}
       {page === 'year' && <Year onMonth={(m) => { setStartMonth(m); open('month'); }} />}
       {page === 'goals' && <Goals />}
+      {page === 'shared' && <Shared />}
       {page === 'categories' && <Categories categories={categories} onChanged={loadCategories} />}
 
       <footer>

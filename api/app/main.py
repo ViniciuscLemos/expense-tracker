@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import auth, categories, dashboard, demo, entries, goals, recurring, year
+from . import auth, categories, dashboard, demo, entries, goals, recurring, shared, year
 from .db import make_pool, migrate
 
 UNSAFE = {"POST", "PATCH", "PUT", "DELETE"}
@@ -39,7 +39,7 @@ def create_app(database_url: str | None = None, demo_mode: bool | None = None, s
             return JSONResponse({"detail": "Missing X-Requested-With: fetch."}, status_code=403)
         return await call_next(request)
 
-    for module in (auth, categories, entries, recurring, dashboard, year, goals):
+    for module in (auth, categories, entries, recurring, dashboard, year, goals, shared):
         app.include_router(module.router)
 
     @app.get("/api/health")

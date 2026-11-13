@@ -31,6 +31,12 @@ I wanted it to feel like the notebook people actually use for this, not like a d
 - **A search can look in every month,** not only the one open: "when did I last pay the dentist?" With that on, each day in the list also says which month it's from. A search that finds nothing in this month offers to look in the others.
 - Categories can be renamed, recolored, archived or deleted. A category that still has entries has to move them to another one before it can go.
 - If you used the first version, its backup file can be brought in from the categories page. Bringing the same file twice doesn't repeat anything.
+- **Paying for two.** Dinner with a friend, the market and the bills with a flatmate: ticking *half is someone else's* on an expense marks half of it as theirs. It still counts whole in the month, since all of it left your pocket, and the half shows up on the **shared** page as what they owe. Anything else between the two of you goes there too: they paid the gas bill for both (you owe half), they paid you back, you paid them back. Each person gets one sentence (*"Júlia owes you R$ 315,25."*), the last few things that moved it, and a **settle up** button that writes down the payment that squares it. Names are matched without case, so Bia, bia and BIA are one person, and an odd cent stays with whoever paid.
+
+  <p>
+    <img src="docs/shared.png" alt="The shared page: Júlia owes R$ 315,25 for this month's internet, electricity and groceries, last month already settled, and Bia owes R$ 34,45 for a lunch" width="560">
+    <img src="docs/split-line.png" alt="The line to write an expense with 'half is someone else's' ticked and Bia's name" width="560">
+  </p>
 - **Writing it down with no signal.** On the bus or at the back of the market the connection drops, and the entry doesn't get lost: it waits in the browser, shown above the page as *"2 entries are waiting for the connection"*, and goes on its own the moment the phone is back online (or the next time the page opens). Each one carries a key made up in the browser, and the API writes an entry with a key it has seen once only, so a reply lost on a bad connection doesn't turn one coffee into two. Logging out forgets whatever was still waiting.
 
   <img src="docs/offline.png" alt="Two entries waiting for the connection, a bus ticket and a coffee, kept in the browser and sent when it's back, above the line to write a new one" width="680">
@@ -63,6 +69,7 @@ It lives in `api/`, written in FastAPI with psycopg, and the SQL is written by h
 - The database itself refuses an entry in a category that belongs to another person or is of the other kind. That's a composite foreign key, `(category_id, user_id, kind)`, so it doesn't depend on the Python code remembering to check.
 - The list comes 50 entries at a time and pages by `(day, id)` instead of `OFFSET`. Page 40 is as fast as page 1, and nothing gets skipped when entries are added in between.
 - `/api/goals` keeps the goals and `/api/goals/{id}/moves` the money going in and out. Taking out more than is there is refused under a row lock, so two taps at once can't both take the last of it. `/api/goals/leftover` says what last month left that hasn't gone into a goal yet.
+- `GET /api/shared` is everyone the person shares with and where it stands, worked out from the split expenses and the moves in `shared_moves` (`POST /api/shared/moves`, `DELETE /api/shared/moves/{id}`). An entry takes `split_with` when it's made or edited, and the database refuses it on anything but an expense.
 - `GET /api/year/2026` is the year page in one request: twelve months with `generate_series`, so the empty ones are zeros, and the categories with how many months each shows up in.
 - `GET /api/dashboard?month=2026-10` brings everything the page needs in one request:
   - the totals, and last month's;
@@ -128,6 +135,7 @@ api/
   app/entries.py      entries: list with filters and paging, add, edit, delete, import
   app/categories.py   categories and budgets
   app/dashboard.py    the month in one request
+  app/shared.py       money between two people
   app/demo.py         Marina, the demo account
   migrations/         the SQL
   tests/

@@ -92,6 +92,20 @@ def reset(pool):
             conn.execute("UPDATE entries SET recurring_id = %s WHERE user_id = %s AND description = %s",
                          (rid, user_id, text))
 
+        # the flat is shared with Júlia: the bills Marina pays are half hers, Júlia paid the
+        # gas for both last month and paid back what she owed then. Lunch with Bia was split too
+        last_month = shift(this_month, -1)
+        conn.execute("UPDATE entries SET split_with = 'Júlia' WHERE user_id = %s AND day >= %s "
+                     "AND description IN ('Internet', 'Electricity', 'Groceries at Pão de Açúcar')", (user_id, last_month))
+        conn.execute("UPDATE entries SET split_with = 'Bia' WHERE user_id = %s AND day >= %s AND description = 'Lunch with Bia'",
+                     (user_id, this_month))
+        owed_then = conn.execute("SELECT coalesce(sum(amount_cents / 2), 0)::bigint AS n FROM entries "
+                                 "WHERE user_id = %s AND split_with = 'Júlia' AND day < %s", (user_id, this_month)).fetchone()["n"]
+        for kind, cents, text, day in [("they_paid", -4250, "Gas bill", date(last_month.year, last_month.month, 14)),
+                                       ("they_paid_back", -(owed_then - 4250), "paid back", date(last_month.year, last_month.month, 28))]:
+            conn.execute("INSERT INTO shared_moves (user_id, with_name, kind, amount_cents, description, day) VALUES (%s, 'Júlia', %s, %s, %s, %s)",
+                         (user_id, kind, cents, text, day))
+
         # three goals: one with a date, one without, one already there
         for name, target, by, moves in GOALS:
             gid = conn.execute(

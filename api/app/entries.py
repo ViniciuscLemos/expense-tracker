@@ -10,7 +10,8 @@ from .months import month_range
 
 router = APIRouter(prefix="/api/entries")
 
-FIELDS = "e.id, e.kind, e.category_id, e.amount_cents, e.description, e.day, e.created_at, e.recurring_id"
+FIELDS = "e.id, e.kind, e.category_id, e.amount_cents, e.description, e.day, e.created_at, e.recurring_id, e.split_with"
+RETURNS = "id, kind, category_id, amount_cents, description, day, created_at, recurring_id, split_with"
 PAGE = 50
 
 
@@ -23,6 +24,15 @@ class NewEntry(BaseModel):
     # written while offline: the page makes up this key and sends the entry again until it
     # gets an answer, so a reply lost on a bad connection doesn't write it down twice
     client_key: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{8,60}$")
+    # half of it is this person's (see shared.py)
+    split_with: str | None = Field(default=None, max_length=40)
+
+
+def clean_split(kind: str, name: str | None) -> str | None:
+    name = (name or "").strip() or None
+    if name and kind != "expense":
+        raise HTTPException(422, "Only something spent can be split.")
+    return name
 
 
 class EntryChange(BaseModel):
@@ -31,6 +41,8 @@ class EntryChange(BaseModel):
     amount_cents: int | None = Field(default=None, gt=0, lt=100_000_000_000, strict=True)
     description: str | None = Field(default=None, min_length=1, max_length=120)
     day: date | None = None
+    # "" takes the split off
+    split_with: str | None = Field(default=None, max_length=40)
 
 
 def check_category(conn, user_id: int, category_id: int, kind: str):
@@ -107,11 +119,12 @@ def get_entry(conn, user_id: int, entry_id: int) -> dict:
 def add_entry(body: NewEntry, user=Depends(current_user), conn=Depends(db, scope="function")):
     check_category(conn, user["id"], body.category_id, body.kind)
     source = f"offline:{body.client_key}" if body.client_key else None
+    split = clean_split(body.kind, body.split_with)
     row = conn.execute(
-        "INSERT INTO entries (user_id, kind, category_id, amount_cents, description, day, source_id) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (user_id, source_id) WHERE source_id IS NOT NULL DO NOTHING "
-        "RETURNING id, kind, category_id, amount_cents, description, day, created_at, recurring_id",
-        (user["id"], body.kind, body.category_id, body.amount_cents, body.description.strip(), body.day, source)).fetchone()
+        "INSERT INTO entries (user_id, kind, category_id, amount_cents, description, day, source_id, split_with) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (user_id, source_id) WHERE source_id IS NOT NULL DO NOTHING "
+        f"RETURNING {RETURNS}",
+        (user["id"], body.kind, body.category_id, body.amount_cents, body.description.strip(), body.day, source, split)).fetchone()
     if row is None:
         # this one arrived before and the answer got lost on the way: the same entry, not a second
         row = conn.execute(f"SELECT {FIELDS} FROM entries e WHERE e.user_id = %s AND e.source_id = %s",
@@ -126,14 +139,15 @@ def change_entry(entry_id: int, body: EntryChange, user=Depends(current_user), c
     if "description" in sent:
         sent["description"] = sent["description"].strip()
     merged = {**entry, **sent}
+    if "split_with" in sent or ("kind" in sent and entry["split_with"]):
+        sent["split_with"] = clean_split(merged["kind"], merged["split_with"])
     if "kind" in sent or "category_id" in sent:
         check_category(conn, user["id"], merged["category_id"], merged["kind"])
     if not sent:
         return entry
     columns = ", ".join(f"{column} = %({column})s" for column in sent)
     return conn.execute(
-        f"UPDATE entries SET {columns}, updated_at = now() WHERE id = %(id)s "
-        "RETURNING id, kind, category_id, amount_cents, description, day, created_at, recurring_id",
+        f"UPDATE entries SET {columns}, updated_at = now() WHERE id = %(id)s RETURNING {RETURNS}",
         {**sent, "id": entry_id}).fetchone()
 
 
