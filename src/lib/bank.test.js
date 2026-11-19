@@ -66,6 +66,10 @@ describe('reading a bank statement', () => {
     expect(readDate('31/10/2026')).toBe('2026-10-31');
     expect(readDate('2026-10-31T00:00')).toBe('2026-10-31');
     expect(readDate('ontem')).toBeNull();
+    expect(readDate('31-10-2026')).toBe('2026-10-31');
+    expect(readDate('31.10.2026')).toBe('2026-10-31');
+    expect(readDate('1/9/26')).toBe('2026-09-01');
+    expect(readDate('13/13/2026')).toBeNull();
     expect(readAmount('R$ -12,00')).toBe(-1200);
     expect(readAmount('1,234.56')).toBe(123456);
     expect(readAmount('abc')).toBeNull();

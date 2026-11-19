@@ -26,13 +26,18 @@ const DATE = ['data', 'date', 'data lancamento', 'data da transacao', 'data movi
 const TEXT = ['descricao', 'title', 'historico', 'description', 'lancamento', 'estabelecimento'];
 const AMOUNT = ['valor', 'amount', 'valor (r$)', 'value'];
 
-// "31/10/2026" or "2026-10-31" -> "2026-10-31"
+// "31/10/2026", "31-10-2026", "31.10.2026", "31/10/26" or "2026-10-31" -> "2026-10-31".
+// Some banks (and Excel, when the file goes through it) write the year with two digits
+// or the day with one, so "1/9/26" is the 1st of September 2026
 export function readDate(text) {
   let m = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
   if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-  m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text);
-  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
-  return null;
+  m = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4}|\d{2})$/.exec(text.trim());
+  if (!m) return null;
+  const [day, month] = [Number(m[1]), Number(m[2])];
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const year = m[3].length === 2 ? `20${m[3]}` : m[3];
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 // "-1.234,56", "1234.56", "R$ -12,00" -> signed cents
