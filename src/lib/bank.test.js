@@ -75,5 +75,9 @@ describe('reading a bank statement', () => {
     expect(readAmount('abc')).toBeNull();
     expect(guessCategory('MERCADO LIVRE*LOJA', 'expense')).toBe('Shopping');
     expect(guessCategory('Padaria São João', 'expense')).toBe('Food');
+    expect(guessCategory('WELLHUB*PLANO', 'expense')).toBe('Health');
+    expect(guessCategory('Cabify *Viagem', 'expense')).toBe('Transport');
+    expect(guessCategory('YouTube Premium', 'expense')).toBe('Fun');
+    expect(guessCategory('Duolingo Super', 'expense')).toBe('Education');
   });
 });

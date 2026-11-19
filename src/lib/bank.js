@@ -59,11 +59,11 @@ export function readAmount(text) {
 const GUESS = [
   ['Shopping', ['amazon', 'mercado livre', 'mercadolivre', 'shopee', 'magalu', 'americanas', 'renner', 'riachuelo', 'zara', 'shein', 'aliexpress']],
   ['Food', ['ifood', 'restaurante', 'padaria', 'mercado', 'supermercado', 'pao de acucar', 'carrefour', 'assai', 'atacadao', 'lanche', 'pizza', 'burger', 'cafe', 'acougue', 'hortifruti', 'rappi']],
-  ['Transport', ['uber', '99app', '99 ', 'posto', 'combustivel', 'shell', 'ipiranga', 'metro', 'bilhete unico', 'estacionamento', 'sem parar', 'pedagio', 'onibus']],
+  ['Transport', ['uber', '99app', '99 ', 'cabify', 'indrive', 'bolt', 'gasolina', 'posto', 'combustivel', 'shell', 'ipiranga', 'metro', 'bilhete unico', 'estacionamento', 'sem parar', 'pedagio', 'onibus']],
   ['Housing', ['aluguel', 'condominio', 'enel', 'sabesp', 'light', 'comgas', 'internet', 'vivo', 'claro', 'tim ', 'net ', 'iptu', 'agua', 'energia']],
-  ['Health', ['farmacia', 'drogasil', 'droga raia', 'pague menos', 'unimed', 'amil', 'consulta', 'clinica', 'laboratorio', 'dentista', 'academia', 'smartfit']],
-  ['Fun', ['netflix', 'spotify', 'cinema', 'ingresso', 'steam', 'playstation', 'xbox', 'disney', 'prime video', 'hbo', 'show', 'bar ']],
-  ['Education', ['curso', 'udemy', 'alura', 'livraria', 'escola', 'faculdade', 'mensalidade']],
+  ['Health', ['farmacia', 'drogasil', 'droga raia', 'pague menos', 'unimed', 'amil', 'consulta', 'clinica', 'laboratorio', 'dentista', 'academia', 'smartfit', 'wellhub', 'gympass', 'totalpass']],
+  ['Fun', ['netflix', 'spotify', 'cinema', 'ingresso', 'steam', 'playstation', 'xbox', 'disney', 'prime video', 'hbo', 'max.com', 'youtube premium', 'globoplay', 'deezer', 'twitch', 'show', 'bar ']],
+  ['Education', ['curso', 'udemy', 'alura', 'coursera', 'duolingo', 'rocketseat', 'livraria', 'escola', 'faculdade', 'mensalidade']],
 ];
 const INCOME = [['Salary', ['salario', 'folha', 'pagamento de salario', 'proventos']]];
 
