@@ -25,6 +25,9 @@ export function splitLine(line, sep) {
 const DATE = ['data', 'date', 'data lancamento', 'data da transacao', 'data movimento'];
 const TEXT = ['descricao', 'title', 'historico', 'description', 'lancamento', 'estabelecimento'];
 const AMOUNT = ['valor', 'amount', 'valor (r$)', 'value'];
+// some banks split the amount in two columns, money in and money out, both positive
+const CREDIT = ['credito', 'entrada', 'entradas', 'credit', 'credito (r$)'];
+const DEBIT = ['debito', 'saida', 'saidas', 'debit', 'debito (r$)'];
 
 // "31/10/2026", "31-10-2026", "31.10.2026", "31/10/26" or "2026-10-31" -> "2026-10-31".
 // Some banks (and Excel, when the file goes through it) write the year with two digits
@@ -106,8 +109,11 @@ export function readStatement(text) {
     const header = splitLine(lines[start], sep);
     const d = columnOf(header, DATE);
     const a = columnOf(header, AMOUNT);
+    const credit = columnOf(header, CREDIT);
+    const debit = columnOf(header, DEBIT);
     const t = columnOf(header, TEXT);
-    if (d < 0 || a < 0) continue;
+    const split = a < 0 && credit >= 0 && debit >= 0;
+    if (d < 0 || (a < 0 && !split)) continue;
 
     const card = strip(header[d]) === 'date' && strip(header[t] || '') === 'title';
     const entries = [];
@@ -116,7 +122,9 @@ export function readStatement(text) {
     for (const line of lines.slice(start + 1)) {
       const cells = splitLine(line, sep);
       const day = readDate(cells[d] || '');
-      let cents = readAmount(cells[a] || '');
+      let cents = split
+        ? (readAmount(cells[credit] || '') || 0) - Math.abs(readAmount(cells[debit] || '') || 0)
+        : readAmount(cells[a] || '');
       const description = (t >= 0 ? cells[t] : '') || 'From the bank';
       if (!day || !cents || SKIP.some((w) => strip(description).includes(w))) { skipped++; continue; }
       if (card) cents = -cents;

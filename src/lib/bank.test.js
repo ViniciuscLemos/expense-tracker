@@ -57,6 +57,21 @@ describe('reading a bank statement', () => {
     expect(readStatement(text).entries.map((e) => e.id)).toEqual(first);
   });
 
+  it('reads a statement with money in and money out in separate columns', () => {
+    const csv = [
+      'Data;Histórico;Crédito;Débito;Saldo',
+      '03/11/2026;Salário Empresa X;5.000,00;;5.000,00',
+      '04/11/2026;Padaria Central;;18,50;4.981,50',
+      '05/11/2026;Uber *Trip;;-32,90;4.948,60',
+    ].join('\n');
+    const { entries } = readStatement(csv);
+    expect(entries.map((e) => [e.type, e.amount, e.category])).toEqual([
+      ['income', 500000, 'Salary'],
+      ['expense', 1850, 'Food'],
+      ['expense', 3290, 'Transport'],
+    ]);
+  });
+
   it('says so when the file is not a statement', () => {
     expect(() => readStatement('name,email\nAna,ana@example.com')).toThrow(/date and amount/);
   });
