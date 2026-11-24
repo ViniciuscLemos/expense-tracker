@@ -50,7 +50,10 @@ export function readAmount(text) {
   clean = clean.replace(/[-()]/g, '');
   const lastDot = clean.lastIndexOf('.');
   const lastComma = clean.lastIndexOf(',');
-  if (lastComma > lastDot) clean = clean.replace(/\./g, '').replace(',', '.');
+  // same rule the entry form uses (parseAmount): a separator before groups of three
+  // digits, with nothing after, is thousands; money never has three decimal places
+  if (/^\d{1,3}([.,]\d{3})+$/.test(clean)) clean = clean.replace(/[.,]/g, '');
+  else if (lastComma > lastDot) clean = clean.replace(/\./g, '').replace(',', '.');
   else clean = clean.replace(/,/g, '');
   if (!/^\d+(\.\d+)?$/.test(clean)) return null;
   const cents = Math.round(Number(clean) * 100);

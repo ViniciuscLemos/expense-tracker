@@ -87,6 +87,10 @@ describe('reading a bank statement', () => {
     expect(readDate('13/13/2026')).toBeNull();
     expect(readAmount('R$ -12,00')).toBe(-1200);
     expect(readAmount('1,234.56')).toBe(123456);
+    expect(readAmount('1.234')).toBe(123400);
+    expect(readAmount('-2.500.000')).toBe(-250000000);
+    expect(readAmount('12.50')).toBe(1250);
+    expect(readAmount('1,500')).toBe(150000);
     expect(readAmount('abc')).toBeNull();
     expect(guessCategory('MERCADO LIVRE*LOJA', 'expense')).toBe('Shopping');
     expect(guessCategory('Padaria São João', 'expense')).toBe('Food');
